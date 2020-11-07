@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"freddyzeng.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="背景作为开发者，我们都需要使用Git。无论是开源项目，还是企业项目，我们都需要回溯历史变动。查询某个功能是什么时候添加的，我们想查看它的演变就可以了（因为Git就是按照时间轴标记commit的）。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="如何使用Git掌控项目">
+<meta property="og:url" content="https://freddyzeng.github.io/2020/09/29/%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8Git%E6%8E%8C%E6%8E%A7%E9%A1%B9%E7%9B%AE/index.html">
+<meta property="og:site_name" content="FreddyZeng&#39;s blog">
+<meta property="og:description" content="背景作为开发者，我们都需要使用Git。无论是开源项目，还是企业项目，我们都需要回溯历史变动。查询某个功能是什么时候添加的，我们想查看它的演变就可以了（因为Git就是按照时间轴标记commit的）。">
+<meta property="og:image" content="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img%E6%88%AA%E5%B1%8F2020-09-29%20%E4%B8%8B%E5%8D%881.21.19.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img%E6%88%AA%E5%B1%8F2020-09-29%20%E4%B8%8B%E5%8D%881.25.49.png">
+<meta property="article:published_time" content="2020-09-29T05:03:38.000Z">
+<meta property="article:modified_time" content="2020-10-07T14:27:10.573Z">
+<meta property="article:author" content="FreddyZeng">
+<meta property="article:tag" content="git">
+<meta property="article:tag" content="技巧">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img%E6%88%AA%E5%B1%8F2020-09-29%20%E4%B8%8B%E5%8D%881.21.19.png">
+
+<link rel="canonical" href="https://freddyzeng.github.io/2020/09/29/%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8Git%E6%8E%8C%E6%8E%A7%E9%A1%B9%E7%9B%AE/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-Hans'
+  };
+</script>
+
+  <title>如何使用Git掌控项目 | FreddyZeng's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="تشغيل شريط التصفح">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">FreddyZeng's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习笔记</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>الوسوم</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>التصنيفات</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>الأرشيفات</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>بحث
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="بحث..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://freddyzeng.github.io/2020/09/29/%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8Git%E6%8E%8C%E6%8E%A7%E9%A1%B9%E7%9B%AE/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="FreddyZeng">
+      <meta itemprop="description" content="keep progress">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="FreddyZeng's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          如何使用Git掌控项目
+        </h1>
+
+        <div class="post-meta">
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">نُشر في</span>
+
+              <time title="أُنشأ: 2020-09-29 13:03:38" itemprop="dateCreated datePublished" datetime="2020-09-29T13:03:38+08:00">2020-09-29</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">عُدل في</span>
+                <time title="عُدل: 2020-10-07 22:27:10" itemprop="dateModified" datetime="2020-10-07T22:27:10+08:00">2020-10-07</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">في</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/git/" itemprop="url" rel="index"><span itemprop="name">git</span></a>
+                </span>
+                  ، 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/git/%E6%8A%80%E5%B7%A7/" itemprop="url" rel="index"><span itemprop="name">技巧</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>作为开发者，我们都需要使用Git。无论是开源项目，还是企业项目，我们都需要回溯历史变动。查询某个功能是什么时候添加的，我们想查看它的演变就可以了（因为Git就是按照时间轴标记commit的）。</p>
+<a id="more"></a>
+
+<h1 id="如何使用git回溯历史"><a href="#如何使用git回溯历史" class="headerlink" title="如何使用git回溯历史"></a>如何使用git回溯历史</h1><p>如果从项目中，找到某个变量，但是想知道这个变量的所有commit信息</p>
+<p>这时我们就可以使用下面g代码it log进行搜索</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">log</span> -S <span class="string">'关键字'</span></span><br></pre></td></tr></table></figure>
+
+<p>这些commit是从最晚到最早提交进行排序的结果列表，这样可以查看最近的’关键字’变动</p>
+<p>如果对git log 非常熟悉的，就不用往下看了。。我是想记录一些自己的感想，认为对工作，对个人提升有帮助的点。</p>
+<h1 id="基于git-log的技巧"><a href="#基于git-log的技巧" class="headerlink" title="基于git log的技巧"></a>基于git log的技巧</h1><h2 id="问题1-我们有时候，就是不知道这个变量是怎么来的，无法了解它的逻辑和实现"><a href="#问题1-我们有时候，就是不知道这个变量是怎么来的，无法了解它的逻辑和实现" class="headerlink" title="问题1:我们有时候，就是不知道这个变量是怎么来的，无法了解它的逻辑和实现"></a>问题1:我们有时候，就是不知道这个变量是怎么来的，无法了解它的逻辑和实现</h2><h3 id="猜想：如果我们能从项目中，寻找这个变量，是从那个commit开始提交的，这样我们是不是就可以回溯它的演变了？（包括阅读开源项目）"><a href="#猜想：如果我们能从项目中，寻找这个变量，是从那个commit开始提交的，这样我们是不是就可以回溯它的演变了？（包括阅读开源项目）" class="headerlink" title="猜想：如果我们能从项目中，寻找这个变量，是从那个commit开始提交的，这样我们是不是就可以回溯它的演变了？（包括阅读开源项目）"></a>猜想：如果我们能从项目中，寻找这个变量，是从那个commit开始提交的，这样我们是不是就可以回溯它的演变了？（包括阅读开源项目）</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">log</span> --reverse -S <span class="string">'关键字'</span></span><br></pre></td></tr></table></figure>
+
+<p>比如我想查看v-on在vue中的实现，第一个想到的是使用编辑器或者grep/rg全局搜索。</p>
+<p>因为Vue项目基于git，我们有更好的方式（不用全局搜索），那就是把问题转换为寻找第一个含有’<strong>v-on</strong>‘的commit记录，然后从中探索它的实现过程</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">log</span> --reverse -S <span class="string">'v-on'</span></span><br></pre></td></tr></table></figure>
+
+<p>效果图：</p>
+<img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img%E6%88%AA%E5%B1%8F2020-09-29%20%E4%B8%8B%E5%8D%881.21.19.png" alt="截屏2020-09-29 下午1.25.49" style="zoom:33%;">
+
+<p>可是这样子还是不够友好，因为并没有列出包含’<strong>v-on</strong>‘的记录到底在文件中哪里，仅仅列出了commit信息</p>
+<p>所以我们可以给 git log 添加 -p参数，让记录直接输出到stdout，然后我们可以继续添加grep进行关键字过滤结果</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">log</span> --reverse -p -S <span class="string">'v-on'</span> | grep -iE <span class="string">"(^commit\b|^diff\b|v-on)"</span> -A 3 -B 3 -m 30</span><br><span class="line"></span><br><span class="line">-m是为了避免记录过多，限制加载次数。再git checkout 到最后一个commit，就可以继续查看记录（大工程频繁git checkout很慢）</span><br><span class="line"></span><br><span class="line">git <span class="built_in">log</span> --reverse -p -S <span class="string">'v-on'</span> &lt;上一次最后输出的commit <span class="built_in">hash</span>&gt;..&lt;最新的commit <span class="built_in">hash</span>或者分支名字&gt; | grep -iE <span class="string">"(^commit\b|^diff\b|v-on)"</span> -A 3 -B 3 -m 30（-m 是限制匹配输出30次，防止过多匹配）</span><br><span class="line"></span><br><span class="line">如果有些文件是在一行过长，可以用rg -M 限制一行的byte大小，这样过长的一行就会被跳过</span><br><span class="line">git <span class="built_in">log</span> --reverse -p -S <span class="string">'v-on'</span> &lt;上一次最后输出的commit <span class="built_in">hash</span>&gt;..&lt;最新的commit <span class="built_in">hash</span>或者分支名字&gt; | rg -e <span class="string">"(^commit\b|^diff\b|v-on)"</span> -A 3 -B 3 -M 500</span><br><span class="line"></span><br><span class="line">如果有大量的匹配，一时之间停不下来，-m限制匹配出现次数来终止。也可以执行commit的范围来决定匹配，因为我们没法知道关键字都集中在那一个范围，所以这样会有点被动。</span><br><span class="line"></span><br><span class="line">取HEAD后的第20个commit <span class="built_in">hash</span>如下：</span><br><span class="line">git rev-list HEAD..master | tail -20 | head -1</span><br><span class="line">这样把上面的结果，放到前面的&lt;最新的commit <span class="built_in">hash</span>或者分支名字&gt;,就可以知道范围查找，避免停不下来。</span><br><span class="line"></span><br><span class="line">一般来说，可以用git checkout HEAD~1（HEAD向后，也就是向下）</span><br><span class="line">也可以用git checkout head^1 来控制跳到那个父commit（如果当前的commit，有多个合并来源，它可以从多个父来源方向选择一个进行回退）</span><br><span class="line"></span><br><span class="line">让HEAD向前，也就是向上移动</span><br><span class="line">git checkout -（类似<span class="built_in">cd</span> -，返回上一次记录）</span><br><span class="line">git checkout $(git rev-list HEAD..master | tail -1| head -1)（如果要指定向前多少步，修改 tail 的参数）</span><br></pre></td></tr></table></figure>
+
+<img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img%E6%88%AA%E5%B1%8F2020-09-29%20%E4%B8%8B%E5%8D%881.25.49.png" alt="截屏2020-09-29 下午1.21.19" style="zoom:33%;">
+
+<p>太幸运了，我们在第一个commit，就看到Vue作者写的v-on正则，并且是|和@连接，所以@和v-on是同一个匹配规则，就是这么来的。</p>
+<p>接下来我们就可以继续翻阅v-on的相关代码演进，这里就不演示了</p>
+<p>除了-S之外，使用-G参数让git log支持正则</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">log</span> --reverse -G <span class="string">'v-on'</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="问题2：如果我是不太明白这个文件中的某个函数是怎么演进到目前这个状态逻辑的，怎么办呢？"><a href="#问题2：如果我是不太明白这个文件中的某个函数是怎么演进到目前这个状态逻辑的，怎么办呢？" class="headerlink" title="问题2：如果我是不太明白这个文件中的某个函数是怎么演进到目前这个状态逻辑的，怎么办呢？"></a>问题2：如果我是不太明白这个文件中的某个函数是怎么演进到目前这个状态逻辑的，怎么办呢？</h2><h3 id="我们可以使用git-log-L追溯某个文件的变动"><a href="#我们可以使用git-log-L追溯某个文件的变动" class="headerlink" title="我们可以使用git log -L追溯某个文件的变动"></a>我们可以使用git log -L追溯某个文件的变动</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">// 文件中，某段范围的演变记录回溯</span><br><span class="line">git <span class="built_in">log</span> -L &lt;开始行号&gt;,&lt;结束行号&gt;:&lt;文件路径&gt;</span><br><span class="line">// 按函数名追溯(有时候不使用,可能跟语法词法有关需要合适的语言)</span><br><span class="line">git <span class="built_in">log</span> -L :&lt;函数名&gt;:&lt;文件路径&gt;</span><br><span class="line">// 整个文件记录回溯</span><br><span class="line">git <span class="built_in">log</span> --follow &lt;文件路径&gt;</span><br></pre></td></tr></table></figure>
+
+<p>这个我就不展示了，可以自己尝试，结合grep或者rg获取关键字的位置</p>
+<h1 id="git-reflog查看git所有操作记录"><a href="#git-reflog查看git所有操作记录" class="headerlink" title="git reflog查看git所有操作记录"></a>git reflog查看git所有操作记录</h1><p>使用 git reflog，可以查看一些本地git的操作日志</p>
+<h1 id="持续完善"><a href="#持续完善" class="headerlink" title="持续完善"></a>持续完善</h1>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/git/" rel="tag"># git</a>
+              <a href="/tags/%E6%8A%80%E5%B7%A7/" rel="tag"># 技巧</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/09/18/%E4%B8%80%E4%B8%AA%E6%83%B3%E6%B3%95%EF%BC%8C%E7%94%A8%E5%B7%A5%E5%85%B7%E6%8F%90%E5%8D%87%E8%8B%B1%E8%AF%AD%E9%98%85%E8%AF%BB%E8%83%BD%E5%8A%9B/" rel="prev" title="一个想法，用工具提升英语阅读能力">
+      <i class="fa fa-chevron-left"></i> 一个想法，用工具提升英语阅读能力
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/10/14/Problem/" rel="next" title="Problem">
+      Problem <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="lv-container" data-id="city" data-uid="MTAyMC81MDY5Ny8yNzE4MA=="></div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          المحتويات
+        </li>
+        <li class="sidebar-nav-overview">
+          عام
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#背景"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#如何使用git回溯历史"><span class="nav-number">2.</span> <span class="nav-text">如何使用git回溯历史</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#基于git-log的技巧"><span class="nav-number">3.</span> <span class="nav-text">基于git log的技巧</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#问题1-我们有时候，就是不知道这个变量是怎么来的，无法了解它的逻辑和实现"><span class="nav-number">3.1.</span> <span class="nav-text">问题1:我们有时候，就是不知道这个变量是怎么来的，无法了解它的逻辑和实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#猜想：如果我们能从项目中，寻找这个变量，是从那个commit开始提交的，这样我们是不是就可以回溯它的演变了？（包括阅读开源项目）"><span class="nav-number">3.1.1.</span> <span class="nav-text">猜想：如果我们能从项目中，寻找这个变量，是从那个commit开始提交的，这样我们是不是就可以回溯它的演变了？（包括阅读开源项目）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#问题2：如果我是不太明白这个文件中的某个函数是怎么演进到目前这个状态逻辑的，怎么办呢？"><span class="nav-number">3.2.</span> <span class="nav-text">问题2：如果我是不太明白这个文件中的某个函数是怎么演进到目前这个状态逻辑的，怎么办呢？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#我们可以使用git-log-L追溯某个文件的变动"><span class="nav-number">3.2.1.</span> <span class="nav-text">我们可以使用git log -L追溯某个文件的变动</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#git-reflog查看git所有操作记录"><span class="nav-number">4.</span> <span class="nav-text">git reflog查看git所有操作记录</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#持续完善"><span class="nav-number">5.</span> <span class="nav-text">持续完善</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">FreddyZeng</p>
+  <div class="site-description" itemprop="description">keep progress</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">المقالات</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">التصنيفات</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">23</span>
+        <span class="site-state-item-name">الوسوم</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">FreddyZeng</span>
+</div>
+  <div class="powered-by">تطبيق الموقع <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+NexT.utils.loadComments(document.querySelector('#lv-container'), () => {
+  window.livereOptions = {
+    refer: location.pathname.replace(CONFIG.root, '').replace('index.html', '')
+  };
+  (function(d, s) {
+    var j, e = d.getElementsByTagName(s)[0];
+    if (typeof LivereTower === 'function') { return; }
+    j = d.createElement(s);
+    j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+    j.async = true;
+    e.parentNode.insertBefore(j, e);
+  })(document, 'script');
+});
+</script>
+
+</body>
+</html>

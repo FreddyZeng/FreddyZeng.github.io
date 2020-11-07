@@ -1,0 +1,526 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>merlin-梅林路由器自动切换网关</title>
+    <url>/2020/08/22/merlin-%E6%A2%85%E6%9E%97%E8%B7%AF%E7%94%B1%E5%99%A8%E8%87%AA%E5%8A%A8%E5%88%87%E6%8D%A2%E7%BD%91%E5%85%B3/</url>
+    <content><![CDATA[<h1 id="缘由"><a href="#缘由" class="headerlink" title="缘由"></a>缘由</h1><p>目前家里是使用AC86U+N1搭建上网环境，N1用来做辅助网关。如果手动设置的话，如果N1挂掉了，或者无法上网，就导致AC86U手动设置的N1网关无效，从而导致AC86U无法上网了。</p>
+<p>目的：如果家人取下N1的lan，就自动切换为AC86U为网关，那么就能保证N1出问题的时候，家人拔下N1就可以恢复上网了。</p>
+<p>我家用的网络拓扑图如下：<br><img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/imgAC86U.005.jpeg" alt="AC86U.005"></p>
+<p>于是寻找一些论坛，如恩山，koolshare，都没有自动切换网关的脚本，所以就自己写了一下，我也大概看了一下<a href="https://github.com/RMerl/asuswrt-merlin.ng" target="_blank" rel="noopener">asuswrt-merlin.ng</a>里面的Service是有哪些命令，并且发现路由是通过nvram命令进行数据储存的用户的路由存储配置。<br>脚本已经使用几个月了，功能比较稳，可以满足需求</p>
+<a id="more"></a>
+
+<h2 id="脚本文件"><a href="#脚本文件" class="headerlink" title="脚本文件"></a>脚本文件</h2><p>现在先给出脚本实现和配置<strong>auto_switch_gateway.sh</strong>，可以根据自己的情况修改ip参数，up_gateway是标记AC86U的WAN是否连上了，如果是没有跟我一样的网络拓扑结构，而是路由器拨号上网的，可以把up_gateway修改成公共DNS网关。如，223.5.5.5或者114.114.114.114</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"></span><br><span class="line">default_gateway=<span class="string">'192.168.50.1'</span></span><br><span class="line">auxiliary_gateway=<span class="string">'192.168.50.2'</span></span><br><span class="line"></span><br><span class="line">up_gateway=<span class="string">'192.168.1.1'</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">check_ip_available</span></span>()&#123;</span><br><span class="line">    ping -c 3 <span class="variable">$1</span> | grep packets | awk <span class="string">'&#123;print $4&#125;'</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment"># If the gateway of the up close, the network is completely unusable</span></span><br><span class="line"></span><br><span class="line">res=`check_ip_available <span class="variable">$up_gateway</span>`</span><br><span class="line"><span class="built_in">echo</span> <span class="variable">$res</span></span><br><span class="line"><span class="keyword">if</span> [ $((res)) -eq 0 ]; <span class="keyword">then</span></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">"up_gateway unusable"</span></span><br><span class="line">  <span class="built_in">exit</span> 1</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">cur_gateway=`/bin/nvram get dhcp_gateway_x` <span class="comment"># get current gateway</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> [ <span class="string">"<span class="variable">$cur_gateway</span>"</span> = <span class="string">"<span class="variable">$default_gateway</span>"</span> ]; <span class="keyword">then</span></span><br><span class="line">   <span class="built_in">echo</span> <span class="string">"cur is default_gateway"</span></span><br><span class="line">   res=`check_ip_available <span class="variable">$auxiliary_gateway</span>`</span><br><span class="line">   <span class="keyword">if</span> [ $((<span class="variable">$res</span>)) -eq 0 ]; <span class="keyword">then</span></span><br><span class="line">      <span class="built_in">echo</span> <span class="string">"d-exit"</span></span><br><span class="line">      <span class="built_in">exit</span> 1</span><br><span class="line">   <span class="keyword">fi</span></span><br><span class="line">   <span class="built_in">echo</span> <span class="string">"switch to auxiliary"</span></span><br><span class="line">   <span class="comment"># to switch</span></span><br><span class="line">   /bin/nvram <span class="built_in">set</span> dhcp_gateway_x=<span class="variable">$auxiliary_gateway</span></span><br><span class="line">   /bin/nvram <span class="built_in">set</span> dhcp_dns1_x=<span class="variable">$auxiliary_gateway</span></span><br><span class="line">   /bin/nvram <span class="built_in">set</span> dhcp_dns2_x=<span class="string">""</span></span><br><span class="line">   /bin/nvram commit</span><br><span class="line"></span><br><span class="line">   /sbin/rc rc_service restart_net_and_phy</span><br><span class="line">   <span class="built_in">exit</span> 0</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> [ <span class="string">"<span class="variable">$cur_gateway</span>"</span> = <span class="string">"<span class="variable">$auxiliary_gateway</span>"</span> ]; <span class="keyword">then</span></span><br><span class="line">   <span class="built_in">echo</span> <span class="string">"cur is auxiliary_gateway"</span></span><br><span class="line">   res=`check_ip_available <span class="variable">$auxiliary_gateway</span>`</span><br><span class="line">   <span class="keyword">if</span> [ $((<span class="variable">$res</span>)) -gt 0 ]; <span class="keyword">then</span></span><br><span class="line">      <span class="built_in">echo</span> <span class="string">"a-exit"</span></span><br><span class="line">      <span class="built_in">exit</span> 1</span><br><span class="line">   <span class="keyword">fi</span></span><br><span class="line">   <span class="built_in">echo</span> <span class="string">"switch to default"</span></span><br><span class="line">   <span class="comment"># to switch</span></span><br><span class="line">   /bin/nvram <span class="built_in">set</span> dhcp_gateway_x=<span class="variable">$default_gateway</span></span><br><span class="line">   /bin/nvram <span class="built_in">set</span> dhcp_dns1_x=119.29.29.29</span><br><span class="line">   /bin/nvram <span class="built_in">set</span> dhcp_dns2_x=223.5.5.5</span><br><span class="line">   /bin/nvram commit</span><br><span class="line"></span><br><span class="line">   /sbin/rc rc_service restart_net_and_phy</span><br><span class="line">   <span class="built_in">exit</span> 0</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">"nothing change"</span></span><br></pre></td></tr></table></figure>
+
+<p>/sbin/rc rc_service restart_net_and_phy，这句命令，其实就是路由器修改本地网关后，会触发的命令。所以这个命令，和网页手动触发效果是一样的<a href="https://sourcegraph.com/github.com/RMerl/asuswrt-merlin.ng/-/blob/release/src/router/www/Advanced_LAN_Content.asp" target="_blank" rel="noopener">LAN代码</a>。这样不用调用reboot命令重启路由器</p>
+<p><img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/imgAC86U.003.jpg" alt="AC86U.003"></p>
+<p>可是我后面发现了一个问题，上面仅仅是通过终端运行脚本，使用ping命令来判断网络的情况和网关的情况，并且优先切换到切换到辅助网关上。这脚本仅仅是自己手动运行执行来检测网络情况的，所以我需要一个自动运行这个检测脚本的脚本</p>
+<h1 id="梅林init-start路由启动钩子"><a href="#梅林init-start路由启动钩子" class="headerlink" title="梅林init-start路由启动钩子"></a>梅林init-start路由启动钩子</h1><p>如果你直接在路由添加crontab定时任务，重启就会被清空，而/jffs/scripts/init-start会在路由器开机时执行</p>
+<p>所以我们就可以通过在init-start 添加任务到crontab，进行定时触发我们的网络情况监测</p>
+<p>我做了个延迟添加网络监听任务到crontab任务脚本<strong>create_crontab_auto_switch_gateway.sh</strong>，</p>
+<p>意思是init-start触发<strong>create_crontab_auto_switch_gateway.sh</strong>，然后<strong>create_crontab_auto_switch_gateway.sh</strong>每秒判断AC86U的WAN外网是否可以ping通，如果可以ping通就添加上面的<strong>auto_switch_gateway.sh</strong>到crontab中。</p>
+<p>为什么要这样处理呢？因为init-start的执行时间不确定，而且是比较早的。所以我需要等待到网络好了，再添加网络监测，想要达到类似Systemd 的Service 的 After=network.target的作用</p>
+<p>下面代码需要需改 /var/spool/cron/crontabs/xxx成 对应的参数，下面示例，xxx是我的AC86U路由器登陆账号，192.168.1.1是我AC86U的WAN连接的广电盒子，如果跟我的网络拓扑图不一样，是路由器直接拨号上网，可以修改成114.114.114.114</p>
+<p><strong>reate_crontab_auto_switch_gateway.sh</strong>代码如下，需要简单修改一下</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> <span class="literal">true</span></span><br><span class="line"><span class="keyword">do</span></span><br><span class="line">sleep 1;</span><br><span class="line">ping -c 1 192.168.1.1 &gt; /dev/null <span class="comment">#判断路由器的WAN是否连接上了</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> [ $? -ne 0 ]; <span class="keyword">then</span></span><br><span class="line">   <span class="built_in">continue</span></span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">"* * * * * /bin/bash /jffs/scripts/auto_switch_gateway.sh"</span> &gt;&gt; /var/spool/cron/crontabs/xxx<span class="comment"># 这里需要把XXX改成你的路由账号名</span></span><br><span class="line"><span class="built_in">break</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">done</span></span><br></pre></td></tr></table></figure>
+
+<p>把上面两个脚本都放在/jffs/scripts/目录下，然后我们看下init-start配置</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line">/bin/bash /jffs/scripts/create_crontab_auto_switch_gateway.sh</span><br></pre></td></tr></table></figure>
+
+<p>如上，就配置好了网关定时任务切换</p>
+<h1 id="其它优化"><a href="#其它优化" class="headerlink" title="其它优化"></a>其它优化</h1><p>如果你遇到梅林路由AC86U网页后台管理打不开，但是路由还能上网，可以添加这个定时任务到init-start，每天4点重启http进程，如下：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">'0 4 * * * service restart_httpd'</span> &gt;&gt; /var/spool/cron/crontabs/xxx</span><br></pre></td></tr></table></figure>
+
+<p>如果你和我一样，是用广电盒子，广电盒子上网重启后比较坑，需要开广电的U点盒子开电视后，才能上网的。</p>
+<p>一开始我就尝试抓包摸索，到底是什么东西触发让U点盒子可以激活广电盒子上网的，后来发现，只要直接访问广电盒子的网关服务器管理页面，就可以不需要开启广电U点盒子来让广电盒子上网了，所以我就添加了个启动路由器的时候定时发出个curl。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">'* * * * * /usr/sbin/curl http://192.168.1.1/cgi-bin/luci'</span> &gt;&gt; /var/spool/cron/crontabs/xxx</span><br></pre></td></tr></table></figure>
+
+<p>所以，我的init-start是这样的</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line">/bin/bash /jffs/scripts/create_crontab_auto_switch_gateway.sh</span><br><span class="line"><span class="built_in">echo</span> <span class="string">'0 4 * * * service restart_httpd'</span> &gt;&gt; /var/spool/cron/crontabs/xxx</span><br><span class="line"><span class="built_in">echo</span> <span class="string">'* * * * * /usr/sbin/curl http://192.168.1.1/cgi-bin/luci'</span> &gt;&gt; /var/spool/cron/crontabs/xxx</span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>auto_switch_gateway.sh 是用来每分钟检测网络状况，并且进行网关切换的（而网关切换一般需要35-40秒，就像你在路由管页修改网关时，点击提交那样需要的时间，所以需要设置为每分钟检测，这样保守点）</p>
+<p>然后路由器是init-start开机时候执行的，因为直接在crontab添加，重启后脚本就被清空了。所以需要在这里添加。</p>
+<p>由于init-start是比较早执行的，可能那时候路由器的网络相关功能还没初始好，所以我们需要延迟一下，每秒判断AC86U的WAN是否连接上了，才添加auto_switch_gateway.sh 任务到 crontab</p>
+<p>有可能你会疑惑service和rc_service。一开始我发现service.c有些命令好像不能执行，但是现在测试又可以了，/sbin/rc rc_service反而可以运行想要的命令，也可以找到很多命令。我没有深入了解它们的真实区别。而且可以看到rc执行main是往某个进程发送命令的 ，这里可以找到其它命令<a href="https://sourcegraph.com/github.com/RMerl/asuswrt-merlin.ng/-/blob/release/src/router/net-snmp/agent/mibgroup/asus-mib/administration.c#L43" target="_blank" rel="noopener">administration.c</a>、<a href="https://sourcegraph.com/github.com/RMerl/asuswrt-merlin.ng/-/blob/release/src/router/rc/services.c" target="_blank" rel="noopener">service.c</a>和<a href="https://sourcegraph.com/github.com/RMerl/asuswrt-merlin.ng/-/blob/release/src/router/rc/rc.c" target="_blank" rel="noopener">rc.c</a></p>
+<h1 id="论坛推荐"><a href="#论坛推荐" class="headerlink" title="论坛推荐"></a>论坛推荐</h1><p>有些资料也是从论坛搜来的，感谢互联网</p>
+<p><a href="https://www.snbforums.com/forums/asuswrt-merlin.42/" target="_blank" rel="noopener">Snbforums</a></p>
+<p><a href="https://www.right.com.cn/forum/" target="_blank" rel="noopener">恩山</a></p>
+<p><a href="https://koolshare.cn/" target="_blank" rel="noopener">Koolshare</a></p>
+]]></content>
+      <categories>
+        <category>路由器</category>
+      </categories>
+      <tags>
+        <tag>辅助网关</tag>
+        <tag>N1</tag>
+        <tag>科学上网</tag>
+        <tag>AC86U</tag>
+        <tag>路由器</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Problem</title>
+    <url>/2020/10/14/Problem/</url>
+    <content><![CDATA[<p>关注自己的成长提升，发现工作+生活中的每一个大小问题，并且解决它，让自己成长。</p>
+<p>所以列出一些我自己的生活问题和工作问题。</p>
+<p>如果有相同的问题，可以私聊我，加好友有空一起探讨，我们到底遇到的难题该如何解决它</p>
+<h1 id="Problem"><a href="#Problem" class="headerlink" title="Problem"></a>Problem</h1><ul>
+<li><p>寻找制定Plan并且按照Plan有效执行的方法或者技巧</p>
+<p>自己学习了一些技巧，可是老是没有建立一个清晰的计划。导致，有了技巧，但是不够熟练，不能用它来吸收继续快速提升自己。<br>所以我寻找一个制定Plan的方法或者技巧，让自己保持执行力。</p>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>计划</category>
+      </categories>
+      <tags>
+        <tag>计划</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>一个想法，用工具提升英语阅读能力</title>
+    <url>/2020/09/18/%E4%B8%80%E4%B8%AA%E6%83%B3%E6%B3%95%EF%BC%8C%E7%94%A8%E5%B7%A5%E5%85%B7%E6%8F%90%E5%8D%87%E8%8B%B1%E8%AF%AD%E9%98%85%E8%AF%BB%E8%83%BD%E5%8A%9B/</url>
+    <content><![CDATA[<h1 id="能力"><a href="#能力" class="headerlink" title="能力"></a>能力</h1><p>我们力求可以在生活中，工作中不断的突破自己。</p>
+<p>我就说下我遇到的问题，我觉得英语是未来人必须要掌握的，因为英语可以和全世界的人进行交流<br>除了可以获取知识，也可以获取各种技巧和tips，所以我必须解决自己的英语阅读障碍。</p>
+<a id="more"></a>
+
+<p>念书时，我是比较比较偏科的，就是不喜欢背诵+重复的东西，英语不怎么好。而且从来没想到英语这么重要。</p>
+<h1 id="我是如何在目前这个阶段，学习英语"><a href="#我是如何在目前这个阶段，学习英语" class="headerlink" title="我是如何在目前这个阶段，学习英语"></a>我是如何在目前这个阶段，学习英语</h1><p>最近一年，我刻意练习，尝试从零学习英语，发现不太合适。</p>
+<p>我的练习场景是在网络上阅读文章。所以我接触比较多的句子类型，一般都是陈述句。我们就专门学习陈述句就好了。<br>先不用去深入学习疑问句，我们就专门搞所有的陈述句</p>
+<p>后来，我看了一本台湾人写的语法书，是旋元佑出的。里面感觉比较适合我这种零基础的。</p>
+<p>总结一下我们的目的，我们针对陈述性的句子进行练习就可以了。</p>
+<h1 id="语法感悟"><a href="#语法感悟" class="headerlink" title="语法感悟"></a>语法感悟</h1><p>根据以前薄弱的语法基础+阅读旋元佑语法书后的感悟（下面仅仅是自己的感悟，没有完整的描述动词的时态，仅仅是为了快速寻找到主谓宾，水平有限啊，在持续提升）</p>
+<p>我们要理解一个句子说了什么，就一定要找到主谓宾（小学老师就反复强调了），我们看英语懵逼，一般都是无法找到主谓宾，从而无法理解句子想表达什么</p>
+<p>一般来说，主语和宾语都是名词，而名词的特点</p>
+<ul>
+<li>名词前面有a或者the</li>
+<li>of前面很大几率是名词，of后面是它的方位，或者包含关系的。（修饰性质）</li>
+<li>for后面可能也是名词，表达前面动词做了什么，是对for后面的名词产生影响的</li>
+</ul>
+<p>动词的特点</p>
+<ul>
+<li><p>如果句子有be一般都是当做动词来使用了</p>
+</li>
+<li><p>如果ed后缀或者ing，可能这个是动词，但是不确定。。</p>
+</li>
+<li><p>如下面这种阅读中也比较常见，看起来set 是动词 to 后面的track也是动词。所以这里就要注意了，我的理解是 set up这个动作是 track的前提。或者说，set up 后，再track。我是这么理解的(非要纠结就去看标准语法书，to是介词，表可以表示目的？或者将要做的？)</p>
+<p><img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img1600362851302.jpg" alt="1600362851302"></p>
+</li>
+</ul>
+<p>由于英语太菜，所以，想弄个chrome插件（未实现），或者脚本来处理这个事情，这样可以在寻找工作相关的资料过程中提升自己的英语水平，一举两得，不用去弄出一大块时间来学习英语</p>
+<h1 id="插件核心功能分析"><a href="#插件核心功能分析" class="headerlink" title="插件核心功能分析"></a>插件核心功能分析</h1><p>现在很多chrome插件，和各种词典。可是都是什么点击查询，查询完就忘记。而无法做到，让我们逐渐脱离工具，让我们成为自主阅读英语的人，让我们尽量少依赖点击查询这种工具了（为了什么？本质上提升英语阅读能力+词汇量，让这个工具真的在帮助我们在提升英语阅读能力）</p>
+<p>作为英语不够好的体验者来说，我比较想如果有某个工具。其功能如下：</p>
+<ul>
+<li>可以对chrome上的句子进行主谓宾用不同的颜色标记出来，如主语蓝色，谓语红色，宾语绿色，那么我们就可以一眼知道句子的大致成分是什么。</li>
+</ul>
+<p>除了上面的标出主谓宾，感觉还是不够的。因为陌生的单词，是一个痛点。</p>
+<p><strong>陌生单词的两种处理方式</strong></p>
+<ul>
+<li>如果我们直接用现有的查词工具，它们基本都是点击就查询，然后就弹出解析。可是关闭后，我们就忘记了单词和它的意思。。。</li>
+<li>考虑到，以前我们小时候学习英语的时候，都是先给出生词给你背诵，然后再读英语短文，这样子读起来还是想起刚才接触的陌生单词</li>
+</ul>
+<p>这两种方式，体验有什么不一样的呢？</p>
+<p>第一种，查了看，然后知道意思，却是不进脑子</p>
+<p>第二种，是可以再阅读陌生英语材料的时候，用脚本从你认识的单词中，过滤出陌生的单词，并且给你过一遍意思，这样你在阅读到它的时候，就会努力的回想刚才这个单词是什么意思。这样的努力练习，理论上就等于你在背诵单词了。（通过尝试回忆起刚才的大意），而且这样不用点击查询，反复打断你的上下文理解思路。</p>
+<p><strong>单词组成分析</strong><br>最近在看XX单词学习课程，单词有后缀来定位词性（如形容词，副词），前缀用来表达一些属性（如方向，否定语句，程度等），词根是一些具有一定意义的组成。</p>
+<p>如果批量查询的时候，能够给出这些提升，也是比较好的。。（不过需要对前缀+后缀+词根学习过的才更好）</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>以上是自己的一些感受，现在看一般的陈述句是没啥问题了，但词汇量是个坑~</p>
+<p>主谓宾的实现:(还是调API吧-.-)</p>
+<ol>
+<li><a href="https://www.quora.com/How-do-I-create-an-algorithm-that-can-identify-verbs-nouns-adjectives-in-Java" target="_blank" rel="noopener">https://www.quora.com/How-do-I-create-an-algorithm-that-can-identify-verbs-nouns-adjectives-in-Java</a></li>
+<li><a href="https://stackoverflow.com/questions/5544475/does-an-algorithm-exist-to-help-detect-the-primary-topic-of-an-english-sentenc" target="_blank" rel="noopener">https://stackoverflow.com/questions/5544475/does-an-algorithm-exist-to-help-detect-the-primary-topic-of-an-english-sentenc</a></li>
+<li><a href="https://cloud.google.com/natural-language/" target="_blank" rel="noopener">https://cloud.google.com/natural-language/</a></li>
+</ol>
+<p>能想到的问题，一般科学家数学家都早已经解决掉，形成工具或者框架了</p>
+<p>好吧，以后就用Google已有的工具搞懂一些长难句..</p>
+]]></content>
+      <categories>
+        <category>自我提升</category>
+        <category>工具</category>
+        <category>英语</category>
+      </categories>
+      <tags>
+        <tag>工具</tag>
+        <tag>英语</tag>
+        <tag>自我提升</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>尝试提升自己的理解力</title>
+    <url>/2020/09/17/%E5%B0%9D%E8%AF%95%E6%8F%90%E5%8D%87%E8%87%AA%E5%B7%B1%E7%9A%84%E7%90%86%E8%A7%A3%E5%8A%9B/</url>
+    <content><![CDATA[<h1 id="一般来说，有3个方向思考-我们都听过"><a href="#一般来说，有3个方向思考-我们都听过" class="headerlink" title="一般来说，有3个方向思考(我们都听过)"></a>一般来说，有3个方向思考(我们都听过)</h1><p>是什么</p>
+<p>为什么</p>
+<p>怎么办</p>
+<h1 id="最新结论"><a href="#最新结论" class="headerlink" title="最新结论"></a>最新结论</h1><p>建议直接看书《金字塔原理》（同事+公司推荐的）和《逻辑学导论》，金字塔原理比较好。</p>
+<p>example标题是原文，如果有空就补充一篇自己的《金字塔读后感》，这篇日志就不再更新了。</p>
+<p>《金字塔原理》的作者基本上就是把思维的活动，通过清晰的文字来表达出来了。思维活动无非就是演绎+归纳，还有一个就是先建立猜想，再去验证。我自己笨，一直寻找了很久资料。。</p>
+<p>我一开始以为是《金字塔原理》是引导如何表达，其实里面也含有阅读技巧，和提炼文本表达的重点。</p>
+<p>《金字塔原理》并且解析了，上下文不够清晰的时候，人的理解会有很多种(归纳推理)。</p>
+<p>我自己的举例子：为什么一千读者，有一千个哈姆雷特。个人猜想，因为《哈姆雷特》作者没有直接陈述哈姆雷特，而且通过阅读主人公的行为（侧面描写），都是通过每个读者自己的归纳推理，去了解主人公哈姆雷特。因为上下文不够清晰的时候，理解会有很多种(归纳推理)。所以，最理解《哈姆雷特》的只有作者自己了吧？或许有人真正能感悟到作者的表达吧。</p>
+<a id="more"></a>
+
+<h2 id="example"><a href="#example" class="headerlink" title="example"></a>example</h2><p>最简单的，就是理解一个句子。</p>
+<p>一个句子，可以表达什么？</p>
+<p>可以形容一个主语，也就是形容词。如果在计算机技术中，一般都是对专业术语的特征描述</p>
+<p>主语+发生了什么动作或者行为</p>
+<p>主语+通过动作和行为+宾语，做了什么，影响了谁</p>
+<p>上面带有动作和行为的，可以选择条件限制，如地点，时间</p>
+<p>以上是最基本的理解，通过以上的基本理解，我们可以关注，各个主语和动作之间的联系。</p>
+<p>可是以上的思考，感觉是远远不够的。或者说，大脑如果读一个句子，就反复询问自己是什么，为什么，怎么办，这样会不会太过低效率呢？而且有些句子，是具有上下文联系的，受上下文影响。</p>
+<p>所以我们尝试把思考句子（是什么为什么怎么办）放到思考段落？（或者说，控制句子数量，3到5句就提炼一次）</p>
+<h1 id="如何提炼呢？"><a href="#如何提炼呢？" class="headerlink" title="如何提炼呢？"></a>如何提炼呢？</h1><p>用最简练的句子，提炼出这个段落说了什么，怎么用，为什么（建立自己理解的场景，建立场景是指有什么东西，做了什么行为，让什么东西发生了变化，或者说提供了什么功能。</p>
+<p>一篇文章的传达作者的概念或者观点。或者说，在自己搜集知识的时候。知识点都是从单一功能，逐渐添加各种拓展的情形。如何记住它们，并且理解它们呢？</p>
+<p>描述的专业术语是什么，这个专业术语是由什么结构什么成分组成的，理解组成和成分（是什么）</p>
+<p>这个专业术语，它能提供什么样的功能，这些功能都是在什么场景下使用的（怎么用）</p>
+<p>最好还要理解为什么要这么用，这么设计，强化自己的异常处理能力（为什么）</p>
+<p>当前需要理解的这个专业术语有没有可能和其它的专业术语，有关联，使用其它专业术语的功能，或者被其它专业术语使用，理解它们的关系</p>
+<p>如果无法对它们进行联系，我们就无法联想</p>
+<p>为了联想，</p>
+<p>我们可以根据相似的功能进行联想（知识点相似性），或者说，它依赖了什么来实现自己的功能，它们是怎么运作的，它依赖的东西，具有什么样的功能和特征</p>
+<p>我们也可以从概念的组成的方向进行联想到其它的概念，并且获得其它概念的功能和特征（是什么），</p>
+<p>我们也可以从这个概念是如何运作的场景开始联想（怎么用）</p>
+<p>当遇到自己无法达到想要的结果的时候，想想知识点的应用场景，思考它们为什么可以这样</p>
+<p>用最简练的句子，提炼出这个段落说了什么，我们就顺着作者的思路去理解知识点是什么，怎么用，为什么。遇新的概念的时候，就寻找它和其它已知的概念的联系，它们怎么运作的</p>
+<h1 id="阅读过文章，如何记住概念呢？"><a href="#阅读过文章，如何记住概念呢？" class="headerlink" title="阅读过文章，如何记住概念呢？"></a>阅读过文章，如何记住概念呢？</h1><p>优先记忆动词？（通过建立一个场景，或者一个动画来记忆？）</p>
+<p>因为动词是可以联想到发生了什么事情。再联想到是谁做的和对谁做的。所以寻找动词，很重要。</p>
+<p>如果你的脑子记忆一个序列的物体容易，还是记忆一些列的动画容易呢？（比如有些电影，电视剧，看过一边还能回忆一些场景。</p>
+<p>而给你一系列物体序列，没有场景，这样是否记忆难度就相对大了呢？如果问我怎么知道的，只能说自己探索的，多探索自身的生理规律吧，我目前解析不了。。）</p>
+<p>所以我会尝试把身边需要记忆的东西，都在脑子中建立动画，并且反复训练自己。看看自己是否有提升。</p>
+<h1 id="如果是技术文档类"><a href="#如果是技术文档类" class="headerlink" title="如果是技术文档类"></a>如果是技术文档类</h1><p>一般都是描述当前的主语，它的动作有什么，并且这个动作依赖什么参数。通过动作来提供功能，也就是程序应用接口API</p>
+<p>所以，需要记忆动作（有什么功能?）。然后联想到当前的主语，再联想主语有其它什么功能</p>
+<p>如果要探究技术类的原理，就应该先探究这个专业术语的从组成入手和它的特征，它的文档（提供什么样的功能，它的功能依赖什么子功能实现的？）。无限递归探索专业术语</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>以上都是一些自我探索，会努力刻意练习，尝试提高自己的理解力。努力在脑海中建立动画模型！<br>如果有更好的方法，我会更新</p>
+<p>另外，阅读一些段落文字。可以试下从时间轴，空间，由里到外，由外到里，由局部到全局，由全局到局部尝试进行分类关联。总结再多，也是一时感悟，还是需要反复琢磨加深理解，形成自己的分析套路吧</p>
+]]></content>
+      <categories>
+        <category>自我提升</category>
+        <category>认知</category>
+      </categories>
+      <tags>
+        <tag>理解力</tag>
+        <tag>认知</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>使用Babel插入console.log到函数顶部</title>
+    <url>/2020/08/22/%E4%BD%BF%E7%94%A8Babel%E6%8F%92%E5%85%A5console-log%E5%88%B0%E5%87%BD%E6%95%B0%E9%A1%B6%E9%83%A8/</url>
+    <content><![CDATA[<h1 id="动机"><a href="#动机" class="headerlink" title="动机"></a>动机</h1><p>由于我们每天都需要阅读陌生的源码，而debug的时候，又需要打断点，所以效率有些低，而且还需要寻找要在哪里打断点。</p>
+<p>所以，借鉴GCC和LLVM都有对应的工具,他们可以在函数顶部和底部插入代码。</p>
+<p>于是我就看下Babel这个库，我觉得它能操控JS的源代码，所以参阅了一些网络上的文章，并且把它实现了</p>
+<p><del><a href="https://www.npmjs.com/package/babel-plugin-function-log" target="_blank" rel="noopener">npm库地址</a></del>，这个库不完美。<a href="https://www.npmjs.com/package/@freddyzeng/funlog" target="_blank" rel="noopener">funlog</a>完美，会继续完善一些常用操作</p>
+<a id="more"></a>
+
+<h1 id="代码效果"><a href="#代码效果" class="headerlink" title="代码效果"></a>代码效果</h1><p><img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/imgbabel-log.jpeg" alt="babel-log"></p>
+<h1 id="CSS调试的猜想（正则替换脚本）"><a href="#CSS调试的猜想（正则替换脚本）" class="headerlink" title="CSS调试的猜想（正则替换脚本）"></a>CSS调试的猜想（正则替换脚本）</h1><p>根据上面JS的探索，可以从源码插入打印信息，然后在Chrome点击打印，直接跳到源代码位置。</p>
+<ul>
+<li><p>对于CSS文件：<br>Chrome本身支持CSS Debug，并且点击就可以调到对应的文件。</p>
+</li>
+<li><p>对于Sass或Less：<br>可是Sass和Less是编译后的CSS行号会有点不一样，编译成CSS的过程，会有各种替换。</p>
+<p>CSS有一个属性Content，是可以添加标记内容的。我们在Sass或者Less源文件中，添加Content属性来标记CSS块在Sass或者Less中的位置，如果被HTML使用，就会Content就突出这个CSS来自于源文件中的第几行，是那个文件。</p>
+<p>由于CSS都是用花括号括起来的，所以我们可以对Sass或者Less进行处理，用正则匹配{并且获取它的行数，插入文件名+行数，这样就能起到标记这个CSS{}的作用。</p>
+</li>
+</ul>
+<p>当在Chrome Debug CSS的时候，选中DOM，就能看到一共引用CSS块在那个文件(Sass或者Less)的第几个行。<br>那些失效了，那些正在生效，这样就快速找到CSS在Sass或者Less中源代码的位置。如下图例子：</p>
+<p>标记后的CSS（假设从Sass或者Less编译而来的）：</p>
+<img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/imgCSS%E6%A0%87%E8%AE%B0.png" alt="CSS标记" style="zoom:50%;">
+
+<p>在Chrome 中Debug CSS:</p>
+<img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/imgHTML%E6%A0%87%E8%AE%B0.png" alt="HTML标记" style="zoom:30%;">
+
+
+
+<h1 id="完善"><a href="#完善" class="headerlink" title="完善"></a>完善</h1><p>上面，仅仅是想到在JS文件中插入代码进行记录执行路径。可是我们的代码一般都是Vue单文件，或者是React的JS或者TS。所以我就继续寻找资料，我的思路如下：</p>
+<ul>
+<li><p>对于JS文件<br>所有的JS文件，都可以使用Babel来直接定位，因为会准确记录JS文件转换前的位置行数。所以打印log可以知道执行到哪里了。</p>
+</li>
+<li><p>对于Vue<br>对于Vue，它的单文件，我们可以把Script标签提取出来，然后使用Babel进行转换，再回填替换掉原来的<JavaScript></JavaScript>标签，首先提取可以用正则，或者Vue的模板编译提取。回填的话，直接用正则匹配替换原来的Script标签应该也是可行的</p>
+<p>参考链接在这里<a href="https://stackoverflow.com/questions/47785382/convert-single-file-vue-components-to-javascript" target="_blank" rel="noopener"><strong>https://stackoverflow.com/questions/47785382/convert-single-file-vue-components-to-javascript</strong></a></p>
+</li>
+<li><p>对于React<br>React一般都是js文件，感觉也是可以直接使用Babel进行插入log定位执行路径<br>对于JSX，可以让Babel安装JSX插件</p>
+</li>
+<li><p>对于TS文件<br>参考链接<a href="https://github.com/dsherret/ts-type-info" target="_blank" rel="noopener">https://github.com/dsherret/ts-type-info</a><br><a href="https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API" target="_blank" rel="noopener">https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API</a></p>
+</li>
+<li><p>前端类似的终结工具者，<a href="https://github.com/facebook/jscodeshift" target="_blank" rel="noopener">jscodeshift</a></p>
+<p>原来facebook，老早就有这种工具了，可以试下魔改一下。。做到类似的事情，兼容多种语言。。<br><a href="https://github.com/facebook/jscodeshift" target="_blank" rel="noopener">https://github.com/facebook/jscodeshift</a><br><a href="https://github.com/cpojer/js-codemod" target="_blank" rel="noopener">https://github.com/cpojer/js-codemod</a></p>
+</li>
+</ul>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>反正，我们工程师尽力想出工具去应对开发过程中遇到的困难，大神肯定都搞过相关的工具，我们站在巨人的肩膀上。</p>
+]]></content>
+      <categories>
+        <category>工具</category>
+        <category>babel</category>
+      </categories>
+      <tags>
+        <tag>工具</tag>
+        <tag>babel</tag>
+        <tag>debug</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>反思：我如何分析业务需求</title>
+    <url>/2020/09/10/%E5%8F%8D%E6%80%9D%EF%BC%9A%E6%88%91%E5%A6%82%E4%BD%95%E5%88%86%E6%9E%90%E4%B8%9A%E5%8A%A1%E9%9C%80%E6%B1%82/</url>
+    <content><![CDATA[<h1 id="状态"><a href="#状态" class="headerlink" title="状态"></a>状态</h1><p>最近，我离开了一个呆了快两年的台企企业，差不多4个月没有工作。</p>
+<p>台企那么稳定，而且公司已经算是台湾第一第二的行业。里面的员工，基本就是我最新。大家都呆了6年左右，同事相互间气氛还好，招我进去的Leader呆了10几年，他是跟随公司成长的核心骨干。</p>
+<a id="more"></a>
+
+<p>如果问为什么要离职？可能就是觉得</p>
+<ul>
+<li>安逸</li>
+<li>所做的工作提不起兴趣</li>
+<li>想往技术气氛更好的公司发展</li>
+<li>公司在深圳，我想回广州或佛山。因为考虑到孩子会长大，有空教教他们做作业，不想他们厌学吧</li>
+</ul>
+<h1 id="起因"><a href="#起因" class="headerlink" title="起因"></a>起因</h1><p>最近入职了一家新公司，对业务不太熟悉，但是感觉公司的业务跟我上一家是有点相似的。<br>不过个人觉得，当前这家公司，更加接近工具，信息类型的平台。</p>
+<p>造成这次delay，我就自己反思。在开发业务的过程中，遇到的问题：</p>
+<ul>
+<li>自己没认真看文档，理解文档能力稍弱</li>
+<li>参加讨论，没有根据需求文档来分析</li>
+<li>不熟悉现有的业务代码，代码关联性，业务依赖，代码-业务耦合等</li>
+<li>都是自己一个人在开发自己的功能，最后才对接。导致业务对接的时候，对接不上。</li>
+</ul>
+<p>遇到问题，就要解决问题。这样才能进步。不然懵懵的，无法提升自己，干活低效率，浪费更多的生命在无聊的事情上</p>
+<p>于是，结合以前的开发经验，进行自我反思。总结以思维导图展示如下(有些混乱，持续完善中)：</p>
+<p><img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img%E9%9C%80%E6%B1%82%E5%88%86%E6%9E%9013.png" alt="需求分析13"></p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>我就是错误在没有遵循最小流程跑通原则，没有及时执行，在现在项目工程中做不合理的尝试，而无法提前知道行不通</p>
+<p>有空就多看看这些套路，参与需求分析的时候，就把他们一个个套出来</p>
+<p>这里也有我以前自己总结的关于<a href="https://raw.githubusercontent.com/FreddyZeng/ReadingNotes/master/Learn/%E5%AD%A6%E4%B9%A0.png" target="_blank" rel="noopener">尝试提升学习的思维导图</a></p>
+<p>如果有想到更好的点，我会不断完善</p>
+<p>如果有更好想法或者技巧，可以分享给我。我会深度思考，如果我可以发现更进一步的idea，会再分享给你。这样我和你就有两个苹果了，共同进步</p>
+<p>以上都是从开发角度，来分析需求，为了充分理解需求点。有些混乱，持续完善中</p>
+<p>更多的需求分析维度方向，可参考下面链接，感觉文章是不错的，感谢作者分享</p>
+<p><a href="https://waylau.com/requirement-analyse/" target="_blank" rel="noopener">https://waylau.com/requirement-analyse/</a></p>
+<p>导图参考链接：</p>
+<p><a href="https://mp.weixin.qq.com/s/u7geoZNpLtfr_crkXVHjAg" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/u7geoZNpLtfr_crkXVHjAg</a></p>
+]]></content>
+      <categories>
+        <category>自我提升</category>
+        <category>业务</category>
+      </categories>
+      <tags>
+        <tag>业务需求分析</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>如何使用Git掌控项目</title>
+    <url>/2020/09/29/%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8Git%E6%8E%8C%E6%8E%A7%E9%A1%B9%E7%9B%AE/</url>
+    <content><![CDATA[<h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>作为开发者，我们都需要使用Git。无论是开源项目，还是企业项目，我们都需要回溯历史变动。查询某个功能是什么时候添加的，我们想查看它的演变就可以了（因为Git就是按照时间轴标记commit的）。</p>
+<a id="more"></a>
+
+<h1 id="如何使用git回溯历史"><a href="#如何使用git回溯历史" class="headerlink" title="如何使用git回溯历史"></a>如何使用git回溯历史</h1><p>如果从项目中，找到某个变量，但是想知道这个变量的所有commit信息</p>
+<p>这时我们就可以使用下面g代码it log进行搜索</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git <span class="built_in">log</span> -S <span class="string">'关键字'</span></span><br></pre></td></tr></table></figure>
+
+<p>这些commit是从最晚到最早提交进行排序的结果列表，这样可以查看最近的’关键字’变动</p>
+<p>如果对git log 非常熟悉的，就不用往下看了。。我是想记录一些自己的感想，认为对工作，对个人提升有帮助的点。</p>
+<h1 id="基于git-log的技巧"><a href="#基于git-log的技巧" class="headerlink" title="基于git log的技巧"></a>基于git log的技巧</h1><h2 id="问题1-我们有时候，就是不知道这个变量是怎么来的，无法了解它的逻辑和实现"><a href="#问题1-我们有时候，就是不知道这个变量是怎么来的，无法了解它的逻辑和实现" class="headerlink" title="问题1:我们有时候，就是不知道这个变量是怎么来的，无法了解它的逻辑和实现"></a>问题1:我们有时候，就是不知道这个变量是怎么来的，无法了解它的逻辑和实现</h2><h3 id="猜想：如果我们能从项目中，寻找这个变量，是从那个commit开始提交的，这样我们是不是就可以回溯它的演变了？（包括阅读开源项目）"><a href="#猜想：如果我们能从项目中，寻找这个变量，是从那个commit开始提交的，这样我们是不是就可以回溯它的演变了？（包括阅读开源项目）" class="headerlink" title="猜想：如果我们能从项目中，寻找这个变量，是从那个commit开始提交的，这样我们是不是就可以回溯它的演变了？（包括阅读开源项目）"></a>猜想：如果我们能从项目中，寻找这个变量，是从那个commit开始提交的，这样我们是不是就可以回溯它的演变了？（包括阅读开源项目）</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git <span class="built_in">log</span> --reverse -S <span class="string">'关键字'</span></span><br></pre></td></tr></table></figure>
+
+<p>比如我想查看v-on在vue中的实现，第一个想到的是使用编辑器或者grep/rg全局搜索。</p>
+<p>因为Vue项目基于git，我们有更好的方式（不用全局搜索），那就是把问题转换为寻找第一个含有’<strong>v-on</strong>‘的commit记录，然后从中探索它的实现过程</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git <span class="built_in">log</span> --reverse -S <span class="string">'v-on'</span></span><br></pre></td></tr></table></figure>
+
+<p>效果图：</p>
+<img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img%E6%88%AA%E5%B1%8F2020-09-29%20%E4%B8%8B%E5%8D%881.21.19.png" alt="截屏2020-09-29 下午1.25.49" style="zoom:33%;">
+
+<p>可是这样子还是不够友好，因为并没有列出包含’<strong>v-on</strong>‘的记录到底在文件中哪里，仅仅列出了commit信息</p>
+<p>所以我们可以给 git log 添加 -p参数，让记录直接输出到stdout，然后我们可以继续添加grep进行关键字过滤结果</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git <span class="built_in">log</span> --reverse -p -S <span class="string">'v-on'</span> | grep -iE <span class="string">"(^commit\b|^diff\b|v-on)"</span> -A 3 -B 3 -m 30</span><br><span class="line"></span><br><span class="line">-m是为了避免记录过多，限制加载次数。再git checkout 到最后一个commit，就可以继续查看记录（大工程频繁git checkout很慢）</span><br><span class="line"></span><br><span class="line">git <span class="built_in">log</span> --reverse -p -S <span class="string">'v-on'</span> &lt;上一次最后输出的commit <span class="built_in">hash</span>&gt;..&lt;最新的commit <span class="built_in">hash</span>或者分支名字&gt; | grep -iE <span class="string">"(^commit\b|^diff\b|v-on)"</span> -A 3 -B 3 -m 30（-m 是限制匹配输出30次，防止过多匹配）</span><br><span class="line"></span><br><span class="line">如果有些文件是在一行过长，可以用rg -M 限制一行的byte大小，这样过长的一行就会被跳过</span><br><span class="line">git <span class="built_in">log</span> --reverse -p -S <span class="string">'v-on'</span> &lt;上一次最后输出的commit <span class="built_in">hash</span>&gt;..&lt;最新的commit <span class="built_in">hash</span>或者分支名字&gt; | rg -e <span class="string">"(^commit\b|^diff\b|v-on)"</span> -A 3 -B 3 -M 500</span><br><span class="line"></span><br><span class="line">如果有大量的匹配，一时之间停不下来，-m限制匹配出现次数来终止。也可以执行commit的范围来决定匹配，因为我们没法知道关键字都集中在那一个范围，所以这样会有点被动。</span><br><span class="line"></span><br><span class="line">取HEAD后的第20个commit <span class="built_in">hash</span>如下：</span><br><span class="line">git rev-list HEAD..master | tail -20 | head -1</span><br><span class="line">这样把上面的结果，放到前面的&lt;最新的commit <span class="built_in">hash</span>或者分支名字&gt;,就可以知道范围查找，避免停不下来。</span><br><span class="line"></span><br><span class="line">一般来说，可以用git checkout HEAD~1（HEAD向后，也就是向下）</span><br><span class="line">也可以用git checkout head^1 来控制跳到那个父commit（如果当前的commit，有多个合并来源，它可以从多个父来源方向选择一个进行回退）</span><br><span class="line"></span><br><span class="line">让HEAD向前，也就是向上移动</span><br><span class="line">git checkout -（类似<span class="built_in">cd</span> -，返回上一次记录）</span><br><span class="line">git checkout $(git rev-list HEAD..master | tail -1| head -1)（如果要指定向前多少步，修改 tail 的参数）</span><br></pre></td></tr></table></figure>
+
+<img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img%E6%88%AA%E5%B1%8F2020-09-29%20%E4%B8%8B%E5%8D%881.25.49.png" alt="截屏2020-09-29 下午1.21.19" style="zoom:33%;">
+
+<p>太幸运了，我们在第一个commit，就看到Vue作者写的v-on正则，并且是|和@连接，所以@和v-on是同一个匹配规则，就是这么来的。</p>
+<p>接下来我们就可以继续翻阅v-on的相关代码演进，这里就不演示了</p>
+<p>除了-S之外，使用-G参数让git log支持正则</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git <span class="built_in">log</span> --reverse -G <span class="string">'v-on'</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="问题2：如果我是不太明白这个文件中的某个函数是怎么演进到目前这个状态逻辑的，怎么办呢？"><a href="#问题2：如果我是不太明白这个文件中的某个函数是怎么演进到目前这个状态逻辑的，怎么办呢？" class="headerlink" title="问题2：如果我是不太明白这个文件中的某个函数是怎么演进到目前这个状态逻辑的，怎么办呢？"></a>问题2：如果我是不太明白这个文件中的某个函数是怎么演进到目前这个状态逻辑的，怎么办呢？</h2><h3 id="我们可以使用git-log-L追溯某个文件的变动"><a href="#我们可以使用git-log-L追溯某个文件的变动" class="headerlink" title="我们可以使用git log -L追溯某个文件的变动"></a>我们可以使用git log -L追溯某个文件的变动</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">// 文件中，某段范围的演变记录回溯</span><br><span class="line">git <span class="built_in">log</span> -L &lt;开始行号&gt;,&lt;结束行号&gt;:&lt;文件路径&gt;</span><br><span class="line">// 按函数名追溯(有时候不使用,可能跟语法词法有关需要合适的语言)</span><br><span class="line">git <span class="built_in">log</span> -L :&lt;函数名&gt;:&lt;文件路径&gt;</span><br><span class="line">// 整个文件记录回溯</span><br><span class="line">git <span class="built_in">log</span> --follow &lt;文件路径&gt;</span><br></pre></td></tr></table></figure>
+
+<p>这个我就不展示了，可以自己尝试，结合grep或者rg获取关键字的位置</p>
+<h1 id="git-reflog查看git所有操作记录"><a href="#git-reflog查看git所有操作记录" class="headerlink" title="git reflog查看git所有操作记录"></a>git reflog查看git所有操作记录</h1><p>使用 git reflog，可以查看一些本地git的操作日志</p>
+<h1 id="持续完善"><a href="#持续完善" class="headerlink" title="持续完善"></a>持续完善</h1>]]></content>
+      <categories>
+        <category>git</category>
+        <category>技巧</category>
+      </categories>
+      <tags>
+        <tag>git</tag>
+        <tag>技巧</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>快慢指针的相遇点问题分析</title>
+    <url>/2020/08/23/%E5%BF%AB%E6%85%A2%E6%8C%87%E9%92%88%E7%9A%84%E7%9B%B8%E9%81%87%E7%82%B9%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/</url>
+    <content><![CDATA[<h1 id="快慢指针问题"><a href="#快慢指针问题" class="headerlink" title="快慢指针问题"></a>快慢指针问题</h1><p>比如这种链表<a href="https://zhuanlan.zhihu.com/p/72886883" target="_blank" rel="noopener">快慢指针题目</a></p>
+<p>判断是否有环，如果有环，怎么计算到环的入口呢？</p>
+<p>判断是否有环，快慢指针是否能相遇就可以知道了。现在我们假设这个链表存在环，求环的入口。</p>
+<a id="more"></a>
+
+<p>如下图：</p>
+<img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/imgpoint.008.jpeg" alt="point.008" style="zoom:50%;">
+
+<p>若b的速度是a的两倍，a和b同时从起点出发，绕环顺时针跑</p>
+<img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/imgpoint.009.jpeg" alt="point.009" style="zoom:50%;">
+
+<p>如果慢指针a刚进入环的时候，快指针b应该已经在环的前面了。而且由于b的速度是a的两倍，所以Oa‘的距离等于a’b‘的距离。</p>
+<img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/imgpoint.010.jpeg" alt="point.010" style="zoom:50%;">
+
+<p>现在我们不考虑上图a’和b’的距离（这个距离等于链头到环入口的距离Oa‘）。假设a和b都是在环上，并且在同一个原定O上顺时针，分析他们的相遇点的情形，如下</p>
+<img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/imgpoint.011.jpeg" alt="point.011" style="zoom:50%;">
+
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>如果遇到一些复杂的问题，我们可以先考虑它的简单情形，然后再考虑让这个简单的情形，如何迁移到复杂的问题。或者把复杂的问题，抛开一些变量因素，进行单独枚举情形到结果。</p>
+<p>当慢指针a和快指针b相遇后。再用另外一个指针从链头跑，并且都是跑1步，慢指针也是跑1步，这样他们到环入口的距离是相等的，所以就会在环的入口相遇。</p>
+<p>不用公式，通过枚举理解它，为什么当相遇后，用一个指针从链头和相遇点，以1步的速度同时向前，慢指针和链头为起点的指针就会相遇在环的入口。</p>
+]]></content>
+      <categories>
+        <category>分析</category>
+        <category>算法</category>
+      </categories>
+      <tags>
+        <tag>快慢指针</tag>
+        <tag>相遇问题</tag>
+        <tag>分析</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>我对动态规划的理解</title>
+    <url>/2020/08/22/%E6%88%91%E5%AF%B9%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92%E7%9A%84%E7%90%86%E8%A7%A3/</url>
+    <content><![CDATA[<h1 id="动态规划"><a href="#动态规划" class="headerlink" title="动态规划"></a>动态规划</h1><h2 id="动态规划的思考"><a href="#动态规划的思考" class="headerlink" title="动态规划的思考"></a>动态规划的思考</h2><p>首先，算法一般是可以用枚举来发现规律的，不是100%，因为有些问题的计算，是可以通过数学公式反而直接算出来了</p>
+<a id="more"></a>
+
+<p>算法都是一个过程，从规模从小到大发现规律或者从规模大到小发现规律</p>
+<ul>
+<li><p>递推问题规律</p>
+<ul>
+<li>从规模小的问题到规模大的问题，规模大的问题依赖仅仅规模小的问题的结果，那么这样可以避免重复计算小规模的问题。比如求一个等差数列的和，这种问题，就是仅仅依赖了前一个子问题的结果<br>比如，1，2，3，4，… 这个数列如果不用公式计算，就是不断累加前一次的结果。</li>
+<li>规模大的问题，依赖多个小规模的问题的结果，这种情况下就很可能存在重复计算，为什么呢？<br>比如斐波那契数列，如f(n) = f(n-1) + f(n-2) -&gt; f(n) = (f(n-2) + f(n-3)) + f(n-2)，如果f(n-2)这个函数没有计算缓存的话，那么就会导致重复计算。有解决办法吗？有，存储已经计算过的值，如果当前这个规模问题已经计算过就立即返回结果，备忘录模式</li>
+</ul>
+</li>
+<li><p>路径问题规律</p>
+<ul>
+<li><p>比如路径问题，寻找从A点到B点，有多少条路径。因为目标比较明确，从感觉上来看，这个问题和规模B点的问题相关性最大，所以如果从A点作为思考，这会出现一个问题，有些情况下需要考虑回溯。<br>如下图：<br><img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/imgDynamicProgramming.002.jpeg" alt="DynamicProgramming.002"></p>
+<ol>
+<li><p>如果上面是A到B的移动过程中，只能往左边或者右边移动的时候。A可能存在直接走到最右则，而无法到达B，因为题设条件限制。所以这时从A思考，会产生回溯，当某一步不能达到目标的时候，要回退上一次的计算，并且选择另外一个路径执行（基于计算另外一个能够达到目标的子问题）。所以，就产生了不确定性，需要回溯，可以根据B的X和Y坐标，控制边界，减少不必要的回溯。</p>
+</li>
+<li><p>如果上面的问题是从目的地思考，反推上一步的来源。那么这个问题就清晰了。由于题设限制只能往右边或者下边移动，所以到达B点时，肯定是从左边或者从上边的格子过来的。这样问题就清晰了，到达B点，从B的左边格子过来+从B的上边格子过来这两种情况，通过枚举情形，问题是确定的，而且这些计算不用回溯，控制好逆向的路径，不越过A的X和Y坐标就好了。直到接近A点。不过，当前这种从规模高到低的问题，存在重复计算的问题，需要设置计算缓存（备忘录模式）</p>
+</li>
+</ol>
+</li>
+</ul>
+</li>
+</ul>
+<p>如果从上方考到思考过程，我们可以枚举一下情形，从小规模到大规模，或者从大规模到小规模来寻找思路。</p>
+<h3 id="状态转移方程–待续"><a href="#状态转移方程–待续" class="headerlink" title="状态转移方程–待续"></a>状态转移方程–待续</h3><h3 id="最优子结构–待续"><a href="#最优子结构–待续" class="headerlink" title="最优子结构–待续"></a>最优子结构–待续</h3><h4 id="边界–待续"><a href="#边界–待续" class="headerlink" title="边界–待续"></a>边界–待续</h4>]]></content>
+      <categories>
+        <category>算法</category>
+      </categories>
+      <tags>
+        <tag>算法</tag>
+        <tag>动态规划</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>简单分析魔方的转动</title>
+    <url>/2020/08/23/%E7%AE%80%E5%8D%95%E5%88%86%E6%9E%90%E9%AD%94%E6%96%B9%E7%9A%84%E8%BD%AC%E5%8A%A8/</url>
+    <content><![CDATA[<h1 id="魔方转动"><a href="#魔方转动" class="headerlink" title="魔方转动"></a>魔方转动</h1><p>如果一个完好的魔方，被转动一次，我们很容易可以还原，转动二次，还可以。可是转动越多，逆向操作恢复完好就越难。</p>
+<p>目前已经有很多公式可以还原魔方。</p>
+<p>可是公式是如何推导出来的呢？太高深的数学不懂，那就用枚举法分析它</p>
+<p>那么我们就自己简单分析一下魔方的行为吧</p>
+<a id="more"></a>
+
+<h1 id="枚举单次转动魔方情况"><a href="#枚举单次转动魔方情况" class="headerlink" title="枚举单次转动魔方情况"></a>枚举单次转动魔方情况</h1><p>魔方是立体的，所以把它看成二维的图，方便分析，如下情形，我们先分析一个面单次转动是怎么样的，会改动到那些面</p>
+<p><img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img%E9%AD%94%E6%96%B9.001.jpeg" alt="魔方.001"></p>
+<p><img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img%E9%AD%94%E6%96%B9.002.jpeg" alt></p>
+<p><img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img%E9%AD%94%E6%96%B9.003.jpeg" alt="魔方.003"></p>
+<p><img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img%E9%AD%94%E6%96%B9.004.jpeg" alt="魔方.004"></p>
+<p><img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img%E9%AD%94%E6%96%B9.005.jpeg" alt="魔方.005"></p>
+<p><img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img%E9%AD%94%E6%96%B9.006.jpeg" alt="魔方.006"><br>以上就是6个面的情况，可是这仅仅是单个面自己转动会影响的其它面<br>仅仅转动一个面，肯定会影响其它4个面的4条边</p>
+<h1 id="相邻面的转动"><a href="#相邻面的转动" class="headerlink" title="相邻面的转动"></a>相邻面的转动</h1><p>仅仅转动一个面，只能让它相邻的边进行变换。所以这是不够的</p>
+<p>因为无论你怎么转动，都是由单次转动魔方得来的。</p>
+<p>如果想知道魔方的色块移动规律，相邻面的转动规律很重要，因为这可以跨页面改变色块的位置。</p>
+<p>比如下图，转动红色和黄色，就会产生不一样的情况</p>
+<p><img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img%E9%AD%94%E6%96%B9.007.jpeg" alt="魔方.007"></p>
+<p>所以，如果给时间我去熟练魔方的话，我会先从单面魔方的转动位置记住它的情形。</p>
+<p>然后再记住相邻面的转动位置记住。</p>
+<p>再下面的，就是三个相邻面的转动情形。。。</p>
+<p>上面都是简单的猜想😆，不知道是否可行</p>
+]]></content>
+      <categories>
+        <category>分析</category>
+      </categories>
+      <tags>
+        <tag>分析</tag>
+        <tag>魔方</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>获取最长回文子串详解</title>
+    <url>/2020/07/20/%E8%8E%B7%E5%8F%96%E6%9C%80%E9%95%BF%E5%9B%9E%E6%96%87%E5%AD%97%E5%AD%90%E4%B8%B2%E8%AF%A6%E8%A7%A3/</url>
+    <content><![CDATA[<h1 id="我的理解"><a href="#我的理解" class="headerlink" title="我的理解"></a>我的理解</h1><p>题目：给定一个字符串，求它的最长回文子串的长度。</p>
+<p>最长回文子串，比如 aba,或者 abccba这样的。</p>
+<p>原文解法一理解比较简单，解法二有些技巧</p>
+<h1 id="原文的解法一枚举法"><a href="#原文的解法一枚举法" class="headerlink" title="原文的解法一枚举法"></a>原文的解法一枚举法</h1><p>这种是一种技巧。</p>
+<p>我们既然要求回文字符串，而回文字符串时以字符串中间为对称的。</p>
+<p>所以，我们可以假设在源字符串S中，假设源字符串S的每个字符都作为回文子串的中心，</p>
+<p>在这个中心往左边和右边进行比较字符串是否相等，直到不等的时候，就是这个字符位置的</p>
+<p>回文子串了。</p>
+<h2 id="举例"><a href="#举例" class="headerlink" title="举例"></a>举例</h2><p>我们可以从给定的原文S，比如“cbcde”中，</p>
+<p>c作为中心，它左边没有字符，所以回文子串为c。</p>
+<p>b作为中心，它左边是c，右边是c。所以回文子串长度为cbc。</p>
+<p>以c为中心，它左边是b，右边是d。所以回文子串为c。</p>
+<p>。。。</p>
+<a id="more"></a>
+
+<h1 id="原文的解法二"><a href="#原文的解法二" class="headerlink" title="原文的解法二"></a>原文的解法二</h1><p>解法二，本质上也是需要计算出字符串每个位置的回文子串长度。</p>
+<p><strong>而解法二核心思想是为了在从左边位置向右边计算的过程中，记录当前最大的回文字符串，在新的位置计算回文字符串的时候，利用对称原理，跳过了部分长度来计算回文子串，减少了计算。</strong></p>
+<h2 id="疑问"><a href="#疑问" class="headerlink" title="疑问"></a>疑问</h2><p><strong>为什么求i的最长回文子串长度，需要用到p[j]的值？</strong></p>
+<p>首先 p[j]存放的是p[j]回文子串的半程(j点到以j为中心的最大回文子串的右端)，也就是j+p[j] 等于p的回文子串的最右端。</p>
+<p>这是因为i和j是以ID为对称的点，并且p[j]是已经记过计算的位置。</p>
+<p>所以如果以j为对称中心的回文子串有一定的长度（原文图中绿色框选择的部分），再根据以ID(也是计算出来的)为中心的回文子串关系（对称ID关系），所以p[j]应该就要对称到i的附近（i的绿色部分），可能会超出mx。所以需要和mx比较取小值。因为求i点的回文子串的时候，我们只能根据已知的点的特征，去跳过已知的点对称关系。大于mx的都是不一定在以i为中心的回文子串对称的，所以需要从这个位置继续求i的回文子串了。</p>
+<p><strong>为什么2*id - i 就是 以id为中心的j点的位置呢？</strong></p>
+<p>可以看成是id + (id - i)，从原文的图，可以知道</p>
+<p>id到i的距离等于 (id - i)的绝对值，因为需要从id的位置往回走，所以以id为中心，与i对象的j点的计算是 id -|(id-i)|（也就是2*id - i）。为什么是2id-i呢，这是因为，id-i本身就是负数，被省略了。。</p>
+<p><strong>原文中的id，如果大于0，它是一定比i小的，为什么呢？</strong></p>
+<p>因为id是由i计算生成的，而i是从左到右的。</p>
+<p><strong>为什么需要获取p[j]和 mx-i的最小值呢？</strong></p>
+<p>因为求i点的回文子串的时候，我们只能根据已知的点的特征，去跳过已知的点对称关系。大于mx的都是不一定在以i为中心的回文子串对称的，所以需要从这个位置继续求i的回文子串了。</p>
+<p><strong>为什么插入#后一定会是奇数呢？</strong></p>
+<p>这是因为2n + 1一定是奇数（n为原文字符串的长度），这个高中数学我们学过。</p>
+<p>n &gt; 0, 2n一定是偶数，所以2n+1一定是奇数。</p>
+<p>不过它是对源文字符串的间隙插入了n+1个#分割符号（n为原文字符串的长度），生成一个奇数的新的原文字符串</p>
+<h2 id="代码解析"><a href="#代码解析" class="headerlink" title="代码解析"></a>代码解析</h2><p>重点来了，如果直接看原文，会有一点点难以理解它的动机。</p>
+<p>这是一个过程计算。我们模拟它来理解</p>
+<p>p存放的是回文子串半程，它是以某点为中心的最大回文子串的中心点到该最大回文子串的最右端的距离</p>
+<ul>
+<li><p>首先从s源文的位置1开始，也就是i=1，因为0是$符号。<br>进行for循环，这里的循环意义是，为每一个位置i都计算出最大回文子串半程的值，存放在p里面。</p>
+</li>
+<li><p>获取p[i],也就是i点的最大回文子串的值，这个值是根据已知的对称性质得知的<br>进行for循环，这里的循环意义是，为每一个位置i都计算出最大回文子串半程的值，存放在p里面。</p>
+<p>p[i] = mx &gt; i ? min(p[2 * id - i], mx - i) : 1;// 获取求i点最大回文子串时，根据对称原理和j点（2*id-i已经计算出的回文子串半程），i点回文子串的距离</p>
+<p>一开始这里p[1] = 1;</p>
+<p>首先，一开始我们没有计算出以ID为范围的最大回文子串，根据mx和i的比较也可以知道。</p>
+</li>
+<li><p>根据获取到的p[i]，跳过部分距离计算i点的最大回文子串<br>然后我们进入while它的初始语句是，s[i + p[i]] == s[i - p[i]]。以i为中心，跳过距离来比较，如果相等，增加P[i]，也就是增加i点的回文子串半程。然后继续往两边比较，更新i的最大回文子串。</p>
+<p>当s[i + p[i]] == s[i - p[i]] 不成立时，以i点为中心的最大回文子串的右端已经算出。</p>
+</li>
+<li><p>更新计算id和mx<br>此时比较mx 和 以i点为中心的最大回文子串的右端，看看那个大。</p>
+<p>如果新计算的i比原来记录的id 和mx大，那么更新id和mx。</p>
+</li>
+</ul>
+<p>所以id和mx是从i计算出来的。</p>
+<p>i一定是比id大。（从左往右计算的）</p>
+<p>回到for ，并且增加i，计算下一个位置的最大回文子串</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&#x2F;&#x2F;输入，并处理得到字符串s</span><br><span class="line">int p[1000], mx &#x3D; 0, id &#x3D; 0;</span><br><span class="line">memset(p, 0, sizeof(p));</span><br><span class="line">for (i &#x3D; 1; s[i] !&#x3D; &#39;\0&#39;; i++) </span><br><span class="line">&#123;</span><br><span class="line">    p[i] &#x3D; mx &gt; i ? min(p[2 * id - i], mx - i) : 1;</span><br><span class="line">    while (s[i + p[i]] &#x3D;&#x3D; s[i - p[i]]) </span><br><span class="line">        p[i]++;</span><br><span class="line">    if (i + p[i] &gt; mx) </span><br><span class="line">    &#123;</span><br><span class="line">        mx &#x3D; i + p[i];</span><br><span class="line">        id &#x3D; i;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">&#x2F;&#x2F;找出p[i]中最大的</span><br></pre></td></tr></table></figure>
+
+<h1 id="引用原文"><a href="#引用原文" class="headerlink" title="引用原文"></a>引用原文</h1><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">参考原文</span><br><span class="line">https:&#x2F;&#x2F;wizardforcel.gitbooks.io&#x2F;the-art-of-programming-by-july&#x2F;content&#x2F;01.05.html</span><br><span class="line">最长回文子串</span><br><span class="line">题目描述</span><br><span class="line">给定一个字符串，求它的最长回文子串的长度。</span><br><span class="line">分析与解法</span><br><span class="line">最容易想到的办法是枚举所有的子串，分别判断其是否为回文。这个思路初看起来是正确的，但却做了很多无用功，如果一个长的子串包含另一个短一些的子串，那么对子串的回文判断其实是不需要的。</span><br><span class="line">解法一</span><br><span class="line">那么如何高效的进行判断呢？我们想想，如果一段字符串是回文，那么以某个字符为中心的前缀和后缀都是相同的，例如以一段回文串“aba”为例，以b为中心，它的前缀和后缀都是相同的，都是a。</span><br><span class="line">那么，我们是否可以可以枚举中心位置，然后再在该位置上用扩展法，记录并更新得到的最长的回文长度呢？答案是肯定的，参考代码如下：</span><br><span class="line">int LongestPalindrome(const char *s, int n)</span><br><span class="line">&#123;</span><br><span class="line">    int i, j, max,c;</span><br><span class="line">    if (s &#x3D;&#x3D; 0 || n &lt; 1)</span><br><span class="line">        return 0;</span><br><span class="line">    max &#x3D; 0;</span><br><span class="line"></span><br><span class="line">    for (i &#x3D; 0; i &lt; n; ++i) &#123; &#x2F;&#x2F; i is the middle point of the palindrome  </span><br><span class="line">        for (j &#x3D; 0; (i - j &gt;&#x3D; 0) &amp;&amp; (i + j &lt; n); ++j)&#123; &#x2F;&#x2F; if the length of the palindrome is odd  </span><br><span class="line">            if (s[i - j] !&#x3D; s[i + j])</span><br><span class="line">                break;</span><br><span class="line">            c &#x3D; j * 2 + 1;</span><br><span class="line">        &#125;</span><br><span class="line">        if (c &gt; max)</span><br><span class="line">            max &#x3D; c;</span><br><span class="line">        for (j &#x3D; 0; (i - j &gt;&#x3D; 0) &amp;&amp; (i + j + 1 &lt; n); ++j)&#123; &#x2F;&#x2F; for the even case  </span><br><span class="line">            if (s[i - j] !&#x3D; s[i + j + 1])</span><br><span class="line">                break;</span><br><span class="line">            c &#x3D; j * 2 + 2;</span><br><span class="line">        &#125;</span><br><span class="line">        if (c &gt; max)</span><br><span class="line">            max &#x3D; c;</span><br><span class="line">    &#125;</span><br><span class="line">    return max;</span><br><span class="line">&#125;</span><br><span class="line">代码稍微难懂一点的地方就是内层的两个 for 循环，它们分别对于以 i 为中心的，长度为奇数和偶数的两种情况，整个代码遍历中心位置 i 并以之扩展，找出最长的回文。</span><br><span class="line">解法二、O(N)解法</span><br><span class="line">在上文的解法一：枚举中心位置中，我们需要特别考虑字符串的长度是奇数还是偶数，所以导致我们在编写代码实现的时候要把奇数和偶数的情况分开编写，是否有一种方法，可以不用管长度是奇数还是偶数，而统一处理呢？比如是否能把所有的情况全部转换为奇数处理？</span><br><span class="line">答案还是肯定的。这就是下面我们将要看到的Manacher算法，且这个算法求最长回文子串的时间复杂度是线性O(N)的。</span><br><span class="line">首先通过在每个字符的两边都插入一个特殊的符号，将所有可能的奇数或偶数长度的回文子串都转换成了奇数长度。比如 abba 变成 #a#b#b#a#， aba变成 #a#b#a#。</span><br><span class="line">此外，为了进一步减少编码的复杂度，可以在字符串的开始加入另一个特殊字符，这样就不用特殊处理越界问题，比如$#a#b#a#。</span><br><span class="line">以字符串12212321为例，插入#和$这两个特殊符号，变成了 S[] &#x3D; &quot;$#1#2#2#1#2#3#2#1#&quot;，然后用一个数组 P[i] 来记录以字符S[i]为中心的最长回文子串向左或向右扩张的长度（包括S[i]）。</span><br><span class="line">比如S和P的对应关系：</span><br><span class="line">S # 1 # 2 # 2 # 1 # 2 # 3 # 2 # 1 #</span><br><span class="line">P 1 2 1 2 5 2 1 4 1 2 1 6 1 2 1 2 1</span><br><span class="line">可以看出，P[i]-1正好是原字符串中最长回文串的总长度，为5。</span><br><span class="line">接下来怎么计算P[i]呢？Manacher算法增加两个辅助变量id和mx，其中id表示最大回文子串中心的位置，mx则为id+P[id]，也就是最大回文子串的边界。得到一个很重要的结论：</span><br><span class="line">如果mx &gt; i，那么P[i] &gt;&#x3D; Min(P[2 * id - i], mx - i)</span><br><span class="line">C代码如下：</span><br><span class="line">&#x2F;&#x2F;mx &gt; i，那么P[i] &gt;&#x3D; MIN(P[2 * id - i], mx - i)</span><br><span class="line">&#x2F;&#x2F;故谁小取谁</span><br><span class="line">if (mx - i &gt; P[2*id - i])</span><br><span class="line">    P[i] &#x3D; P[2*id - i];</span><br><span class="line">else  &#x2F;&#x2F;mx-i &lt;&#x3D; P[2*id - i]</span><br><span class="line">    P[i] &#x3D; mx - i;</span><br><span class="line">下面，令j &#x3D; 2*id - i，也就是说j是i关于id的对称点。</span><br><span class="line">当 mx - i &gt; P[j] 的时候，以S[j]为中心的回文子串包含在以S[id]为中心的回文子串中，由于i和j对称，以S[i]为中心的回文子串必然包含在以S[id]为中心的回文子串中，所以必有P[i] &#x3D; P[j]；</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">当 P[j] &gt;&#x3D; mx - i 的时候，以S[j]为中心的回文子串不一定完全包含于以S[id]为中心的回文子串中，但是基于对称性可知，下图中两个绿框所包围的部分是相同的，也就是说以S[i]为中心的回文子串，其向右至少会扩张到mx的位置，也就是说 P[i] &gt;&#x3D; mx - i。至于mx之后的部分是否对称，再具体匹配。</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">此外，对于 mx &lt;&#x3D; i 的情况，因为无法对 P[i]做更多的假设，只能让P[i] &#x3D; 1，然后再去匹配。</span><br><span class="line">综上，关键代码如下：</span><br><span class="line">&#x2F;&#x2F;输入，并处理得到字符串s</span><br><span class="line">int p[1000], mx &#x3D; 0, id &#x3D; 0;</span><br><span class="line">memset(p, 0, sizeof(p));</span><br><span class="line">for (i &#x3D; 1; s[i] !&#x3D; &#39;\0&#39;; i++) </span><br><span class="line">&#123;</span><br><span class="line">    p[i] &#x3D; mx &gt; i ? min(p[2 * id - i], mx - i) : 1;</span><br><span class="line">    while (s[i + p[i]] &#x3D;&#x3D; s[i - p[i]]) </span><br><span class="line">        p[i]++;</span><br><span class="line">    if (i + p[i] &gt; mx) </span><br><span class="line">    &#123;</span><br><span class="line">        mx &#x3D; i + p[i];</span><br><span class="line">        id &#x3D; i;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">&#x2F;&#x2F;找出p[i]中最大的</span><br><span class="line">此Manacher算法使用id、mx做配合，可以在每次循环中，直接对P[i]的快速赋值，从而在计算以i为中心的回文子串的过程中，不必每次都从1开始比较，减少了比较次数，最终使得求解最长回文子串的长度达到线性O(N)的时间复杂度。</span><br><span class="line">参考：http:&#x2F;&#x2F;www.felix021.com&#x2F;blog&#x2F;read.php?2040 。另外，这篇文章也不错：http:&#x2F;&#x2F;leetcode.com&#x2F;2011&#x2F;11&#x2F;longest-palindromic-substring-part-ii.html 。</span><br></pre></td></tr></table></figure>
+
+<h1 id="感谢相关作者的分享"><a href="#感谢相关作者的分享" class="headerlink" title="感谢相关作者的分享"></a>感谢相关作者的分享</h1><p>tanks</p>
+]]></content>
+      <categories>
+        <category>算法</category>
+      </categories>
+      <tags>
+        <tag>算法</tag>
+        <tag>最大回文子串</tag>
+      </tags>
+  </entry>
+</search>

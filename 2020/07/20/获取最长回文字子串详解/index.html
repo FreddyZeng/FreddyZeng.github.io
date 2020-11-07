@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"freddyzeng.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="我的理解题目：给定一个字符串，求它的最长回文子串的长度。 最长回文子串，比如 aba,或者 abccba这样的。 原文解法一理解比较简单，解法二有些技巧 原文的解法一枚举法这种是一种技巧。 我们既然要求回文字符串，而回文字符串时以字符串中间为对称的。 所以，我们可以假设在源字符串S中，假设源字符串S的每个字符都作为回文子串的中心， 在这个中心往左边和右边进行比较字符串是否相等，直到不等的时候，就是">
+<meta property="og:type" content="article">
+<meta property="og:title" content="获取最长回文子串详解">
+<meta property="og:url" content="https://freddyzeng.github.io/2020/07/20/%E8%8E%B7%E5%8F%96%E6%9C%80%E9%95%BF%E5%9B%9E%E6%96%87%E5%AD%97%E5%AD%90%E4%B8%B2%E8%AF%A6%E8%A7%A3/index.html">
+<meta property="og:site_name" content="FreddyZeng&#39;s blog">
+<meta property="og:description" content="我的理解题目：给定一个字符串，求它的最长回文子串的长度。 最长回文子串，比如 aba,或者 abccba这样的。 原文解法一理解比较简单，解法二有些技巧 原文的解法一枚举法这种是一种技巧。 我们既然要求回文字符串，而回文字符串时以字符串中间为对称的。 所以，我们可以假设在源字符串S中，假设源字符串S的每个字符都作为回文子串的中心， 在这个中心往左边和右边进行比较字符串是否相等，直到不等的时候，就是">
+<meta property="article:published_time" content="2020-07-20T13:56:44.000Z">
+<meta property="article:modified_time" content="2020-09-12T23:46:47.683Z">
+<meta property="article:author" content="FreddyZeng">
+<meta property="article:tag" content="算法">
+<meta property="article:tag" content="最大回文子串">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://freddyzeng.github.io/2020/07/20/%E8%8E%B7%E5%8F%96%E6%9C%80%E9%95%BF%E5%9B%9E%E6%96%87%E5%AD%97%E5%AD%90%E4%B8%B2%E8%AF%A6%E8%A7%A3/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-Hans'
+  };
+</script>
+
+  <title>获取最长回文子串详解 | FreddyZeng's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="تشغيل شريط التصفح">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">FreddyZeng's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习笔记</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>الوسوم</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>التصنيفات</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>الأرشيفات</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>بحث
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="بحث..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://freddyzeng.github.io/2020/07/20/%E8%8E%B7%E5%8F%96%E6%9C%80%E9%95%BF%E5%9B%9E%E6%96%87%E5%AD%97%E5%AD%90%E4%B8%B2%E8%AF%A6%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="FreddyZeng">
+      <meta itemprop="description" content="keep progress">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="FreddyZeng's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          获取最长回文子串详解
+        </h1>
+
+        <div class="post-meta">
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">نُشر في</span>
+
+              <time title="أُنشأ: 2020-07-20 21:56:44" itemprop="dateCreated datePublished" datetime="2020-07-20T21:56:44+08:00">2020-07-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">عُدل في</span>
+                <time title="عُدل: 2020-09-13 07:46:47" itemprop="dateModified" datetime="2020-09-13T07:46:47+08:00">2020-09-13</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">في</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%AE%97%E6%B3%95/" itemprop="url" rel="index"><span itemprop="name">算法</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="我的理解"><a href="#我的理解" class="headerlink" title="我的理解"></a>我的理解</h1><p>题目：给定一个字符串，求它的最长回文子串的长度。</p>
+<p>最长回文子串，比如 aba,或者 abccba这样的。</p>
+<p>原文解法一理解比较简单，解法二有些技巧</p>
+<h1 id="原文的解法一枚举法"><a href="#原文的解法一枚举法" class="headerlink" title="原文的解法一枚举法"></a>原文的解法一枚举法</h1><p>这种是一种技巧。</p>
+<p>我们既然要求回文字符串，而回文字符串时以字符串中间为对称的。</p>
+<p>所以，我们可以假设在源字符串S中，假设源字符串S的每个字符都作为回文子串的中心，</p>
+<p>在这个中心往左边和右边进行比较字符串是否相等，直到不等的时候，就是这个字符位置的</p>
+<p>回文子串了。</p>
+<h2 id="举例"><a href="#举例" class="headerlink" title="举例"></a>举例</h2><p>我们可以从给定的原文S，比如“cbcde”中，</p>
+<p>c作为中心，它左边没有字符，所以回文子串为c。</p>
+<p>b作为中心，它左边是c，右边是c。所以回文子串长度为cbc。</p>
+<p>以c为中心，它左边是b，右边是d。所以回文子串为c。</p>
+<p>。。。</p>
+<a id="more"></a>
+
+<h1 id="原文的解法二"><a href="#原文的解法二" class="headerlink" title="原文的解法二"></a>原文的解法二</h1><p>解法二，本质上也是需要计算出字符串每个位置的回文子串长度。</p>
+<p><strong>而解法二核心思想是为了在从左边位置向右边计算的过程中，记录当前最大的回文字符串，在新的位置计算回文字符串的时候，利用对称原理，跳过了部分长度来计算回文子串，减少了计算。</strong></p>
+<h2 id="疑问"><a href="#疑问" class="headerlink" title="疑问"></a>疑问</h2><p><strong>为什么求i的最长回文子串长度，需要用到p[j]的值？</strong></p>
+<p>首先 p[j]存放的是p[j]回文子串的半程(j点到以j为中心的最大回文子串的右端)，也就是j+p[j] 等于p的回文子串的最右端。</p>
+<p>这是因为i和j是以ID为对称的点，并且p[j]是已经记过计算的位置。</p>
+<p>所以如果以j为对称中心的回文子串有一定的长度（原文图中绿色框选择的部分），再根据以ID(也是计算出来的)为中心的回文子串关系（对称ID关系），所以p[j]应该就要对称到i的附近（i的绿色部分），可能会超出mx。所以需要和mx比较取小值。因为求i点的回文子串的时候，我们只能根据已知的点的特征，去跳过已知的点对称关系。大于mx的都是不一定在以i为中心的回文子串对称的，所以需要从这个位置继续求i的回文子串了。</p>
+<p><strong>为什么2*id - i 就是 以id为中心的j点的位置呢？</strong></p>
+<p>可以看成是id + (id - i)，从原文的图，可以知道</p>
+<p>id到i的距离等于 (id - i)的绝对值，因为需要从id的位置往回走，所以以id为中心，与i对象的j点的计算是 id -|(id-i)|（也就是2*id - i）。为什么是2id-i呢，这是因为，id-i本身就是负数，被省略了。。</p>
+<p><strong>原文中的id，如果大于0，它是一定比i小的，为什么呢？</strong></p>
+<p>因为id是由i计算生成的，而i是从左到右的。</p>
+<p><strong>为什么需要获取p[j]和 mx-i的最小值呢？</strong></p>
+<p>因为求i点的回文子串的时候，我们只能根据已知的点的特征，去跳过已知的点对称关系。大于mx的都是不一定在以i为中心的回文子串对称的，所以需要从这个位置继续求i的回文子串了。</p>
+<p><strong>为什么插入#后一定会是奇数呢？</strong></p>
+<p>这是因为2n + 1一定是奇数（n为原文字符串的长度），这个高中数学我们学过。</p>
+<p>n &gt; 0, 2n一定是偶数，所以2n+1一定是奇数。</p>
+<p>不过它是对源文字符串的间隙插入了n+1个#分割符号（n为原文字符串的长度），生成一个奇数的新的原文字符串</p>
+<h2 id="代码解析"><a href="#代码解析" class="headerlink" title="代码解析"></a>代码解析</h2><p>重点来了，如果直接看原文，会有一点点难以理解它的动机。</p>
+<p>这是一个过程计算。我们模拟它来理解</p>
+<p>p存放的是回文子串半程，它是以某点为中心的最大回文子串的中心点到该最大回文子串的最右端的距离</p>
+<ul>
+<li><p>首先从s源文的位置1开始，也就是i=1，因为0是$符号。<br>进行for循环，这里的循环意义是，为每一个位置i都计算出最大回文子串半程的值，存放在p里面。</p>
+</li>
+<li><p>获取p[i],也就是i点的最大回文子串的值，这个值是根据已知的对称性质得知的<br>进行for循环，这里的循环意义是，为每一个位置i都计算出最大回文子串半程的值，存放在p里面。</p>
+<p>p[i] = mx &gt; i ? min(p[2 * id - i], mx - i) : 1;// 获取求i点最大回文子串时，根据对称原理和j点（2*id-i已经计算出的回文子串半程），i点回文子串的距离</p>
+<p>一开始这里p[1] = 1;</p>
+<p>首先，一开始我们没有计算出以ID为范围的最大回文子串，根据mx和i的比较也可以知道。</p>
+</li>
+<li><p>根据获取到的p[i]，跳过部分距离计算i点的最大回文子串<br>然后我们进入while它的初始语句是，s[i + p[i]] == s[i - p[i]]。以i为中心，跳过距离来比较，如果相等，增加P[i]，也就是增加i点的回文子串半程。然后继续往两边比较，更新i的最大回文子串。</p>
+<p>当s[i + p[i]] == s[i - p[i]] 不成立时，以i点为中心的最大回文子串的右端已经算出。</p>
+</li>
+<li><p>更新计算id和mx<br>此时比较mx 和 以i点为中心的最大回文子串的右端，看看那个大。</p>
+<p>如果新计算的i比原来记录的id 和mx大，那么更新id和mx。</p>
+</li>
+</ul>
+<p>所以id和mx是从i计算出来的。</p>
+<p>i一定是比id大。（从左往右计算的）</p>
+<p>回到for ，并且增加i，计算下一个位置的最大回文子串</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;&#x2F;输入，并处理得到字符串s</span><br><span class="line">int p[1000], mx &#x3D; 0, id &#x3D; 0;</span><br><span class="line">memset(p, 0, sizeof(p));</span><br><span class="line">for (i &#x3D; 1; s[i] !&#x3D; &#39;\0&#39;; i++) </span><br><span class="line">&#123;</span><br><span class="line">    p[i] &#x3D; mx &gt; i ? min(p[2 * id - i], mx - i) : 1;</span><br><span class="line">    while (s[i + p[i]] &#x3D;&#x3D; s[i - p[i]]) </span><br><span class="line">        p[i]++;</span><br><span class="line">    if (i + p[i] &gt; mx) </span><br><span class="line">    &#123;</span><br><span class="line">        mx &#x3D; i + p[i];</span><br><span class="line">        id &#x3D; i;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">&#x2F;&#x2F;找出p[i]中最大的</span><br></pre></td></tr></table></figure>
+
+<h1 id="引用原文"><a href="#引用原文" class="headerlink" title="引用原文"></a>引用原文</h1><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br></pre></td><td class="code"><pre><span class="line">参考原文</span><br><span class="line">https:&#x2F;&#x2F;wizardforcel.gitbooks.io&#x2F;the-art-of-programming-by-july&#x2F;content&#x2F;01.05.html</span><br><span class="line">最长回文子串</span><br><span class="line">题目描述</span><br><span class="line">给定一个字符串，求它的最长回文子串的长度。</span><br><span class="line">分析与解法</span><br><span class="line">最容易想到的办法是枚举所有的子串，分别判断其是否为回文。这个思路初看起来是正确的，但却做了很多无用功，如果一个长的子串包含另一个短一些的子串，那么对子串的回文判断其实是不需要的。</span><br><span class="line">解法一</span><br><span class="line">那么如何高效的进行判断呢？我们想想，如果一段字符串是回文，那么以某个字符为中心的前缀和后缀都是相同的，例如以一段回文串“aba”为例，以b为中心，它的前缀和后缀都是相同的，都是a。</span><br><span class="line">那么，我们是否可以可以枚举中心位置，然后再在该位置上用扩展法，记录并更新得到的最长的回文长度呢？答案是肯定的，参考代码如下：</span><br><span class="line">int LongestPalindrome(const char *s, int n)</span><br><span class="line">&#123;</span><br><span class="line">    int i, j, max,c;</span><br><span class="line">    if (s &#x3D;&#x3D; 0 || n &lt; 1)</span><br><span class="line">        return 0;</span><br><span class="line">    max &#x3D; 0;</span><br><span class="line"></span><br><span class="line">    for (i &#x3D; 0; i &lt; n; ++i) &#123; &#x2F;&#x2F; i is the middle point of the palindrome  </span><br><span class="line">        for (j &#x3D; 0; (i - j &gt;&#x3D; 0) &amp;&amp; (i + j &lt; n); ++j)&#123; &#x2F;&#x2F; if the length of the palindrome is odd  </span><br><span class="line">            if (s[i - j] !&#x3D; s[i + j])</span><br><span class="line">                break;</span><br><span class="line">            c &#x3D; j * 2 + 1;</span><br><span class="line">        &#125;</span><br><span class="line">        if (c &gt; max)</span><br><span class="line">            max &#x3D; c;</span><br><span class="line">        for (j &#x3D; 0; (i - j &gt;&#x3D; 0) &amp;&amp; (i + j + 1 &lt; n); ++j)&#123; &#x2F;&#x2F; for the even case  </span><br><span class="line">            if (s[i - j] !&#x3D; s[i + j + 1])</span><br><span class="line">                break;</span><br><span class="line">            c &#x3D; j * 2 + 2;</span><br><span class="line">        &#125;</span><br><span class="line">        if (c &gt; max)</span><br><span class="line">            max &#x3D; c;</span><br><span class="line">    &#125;</span><br><span class="line">    return max;</span><br><span class="line">&#125;</span><br><span class="line">代码稍微难懂一点的地方就是内层的两个 for 循环，它们分别对于以 i 为中心的，长度为奇数和偶数的两种情况，整个代码遍历中心位置 i 并以之扩展，找出最长的回文。</span><br><span class="line">解法二、O(N)解法</span><br><span class="line">在上文的解法一：枚举中心位置中，我们需要特别考虑字符串的长度是奇数还是偶数，所以导致我们在编写代码实现的时候要把奇数和偶数的情况分开编写，是否有一种方法，可以不用管长度是奇数还是偶数，而统一处理呢？比如是否能把所有的情况全部转换为奇数处理？</span><br><span class="line">答案还是肯定的。这就是下面我们将要看到的Manacher算法，且这个算法求最长回文子串的时间复杂度是线性O(N)的。</span><br><span class="line">首先通过在每个字符的两边都插入一个特殊的符号，将所有可能的奇数或偶数长度的回文子串都转换成了奇数长度。比如 abba 变成 #a#b#b#a#， aba变成 #a#b#a#。</span><br><span class="line">此外，为了进一步减少编码的复杂度，可以在字符串的开始加入另一个特殊字符，这样就不用特殊处理越界问题，比如$#a#b#a#。</span><br><span class="line">以字符串12212321为例，插入#和$这两个特殊符号，变成了 S[] &#x3D; &quot;$#1#2#2#1#2#3#2#1#&quot;，然后用一个数组 P[i] 来记录以字符S[i]为中心的最长回文子串向左或向右扩张的长度（包括S[i]）。</span><br><span class="line">比如S和P的对应关系：</span><br><span class="line">S # 1 # 2 # 2 # 1 # 2 # 3 # 2 # 1 #</span><br><span class="line">P 1 2 1 2 5 2 1 4 1 2 1 6 1 2 1 2 1</span><br><span class="line">可以看出，P[i]-1正好是原字符串中最长回文串的总长度，为5。</span><br><span class="line">接下来怎么计算P[i]呢？Manacher算法增加两个辅助变量id和mx，其中id表示最大回文子串中心的位置，mx则为id+P[id]，也就是最大回文子串的边界。得到一个很重要的结论：</span><br><span class="line">如果mx &gt; i，那么P[i] &gt;&#x3D; Min(P[2 * id - i], mx - i)</span><br><span class="line">C代码如下：</span><br><span class="line">&#x2F;&#x2F;mx &gt; i，那么P[i] &gt;&#x3D; MIN(P[2 * id - i], mx - i)</span><br><span class="line">&#x2F;&#x2F;故谁小取谁</span><br><span class="line">if (mx - i &gt; P[2*id - i])</span><br><span class="line">    P[i] &#x3D; P[2*id - i];</span><br><span class="line">else  &#x2F;&#x2F;mx-i &lt;&#x3D; P[2*id - i]</span><br><span class="line">    P[i] &#x3D; mx - i;</span><br><span class="line">下面，令j &#x3D; 2*id - i，也就是说j是i关于id的对称点。</span><br><span class="line">当 mx - i &gt; P[j] 的时候，以S[j]为中心的回文子串包含在以S[id]为中心的回文子串中，由于i和j对称，以S[i]为中心的回文子串必然包含在以S[id]为中心的回文子串中，所以必有P[i] &#x3D; P[j]；</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">当 P[j] &gt;&#x3D; mx - i 的时候，以S[j]为中心的回文子串不一定完全包含于以S[id]为中心的回文子串中，但是基于对称性可知，下图中两个绿框所包围的部分是相同的，也就是说以S[i]为中心的回文子串，其向右至少会扩张到mx的位置，也就是说 P[i] &gt;&#x3D; mx - i。至于mx之后的部分是否对称，再具体匹配。</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">此外，对于 mx &lt;&#x3D; i 的情况，因为无法对 P[i]做更多的假设，只能让P[i] &#x3D; 1，然后再去匹配。</span><br><span class="line">综上，关键代码如下：</span><br><span class="line">&#x2F;&#x2F;输入，并处理得到字符串s</span><br><span class="line">int p[1000], mx &#x3D; 0, id &#x3D; 0;</span><br><span class="line">memset(p, 0, sizeof(p));</span><br><span class="line">for (i &#x3D; 1; s[i] !&#x3D; &#39;\0&#39;; i++) </span><br><span class="line">&#123;</span><br><span class="line">    p[i] &#x3D; mx &gt; i ? min(p[2 * id - i], mx - i) : 1;</span><br><span class="line">    while (s[i + p[i]] &#x3D;&#x3D; s[i - p[i]]) </span><br><span class="line">        p[i]++;</span><br><span class="line">    if (i + p[i] &gt; mx) </span><br><span class="line">    &#123;</span><br><span class="line">        mx &#x3D; i + p[i];</span><br><span class="line">        id &#x3D; i;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">&#x2F;&#x2F;找出p[i]中最大的</span><br><span class="line">此Manacher算法使用id、mx做配合，可以在每次循环中，直接对P[i]的快速赋值，从而在计算以i为中心的回文子串的过程中，不必每次都从1开始比较，减少了比较次数，最终使得求解最长回文子串的长度达到线性O(N)的时间复杂度。</span><br><span class="line">参考：http:&#x2F;&#x2F;www.felix021.com&#x2F;blog&#x2F;read.php?2040 。另外，这篇文章也不错：http:&#x2F;&#x2F;leetcode.com&#x2F;2011&#x2F;11&#x2F;longest-palindromic-substring-part-ii.html 。</span><br></pre></td></tr></table></figure>
+
+<h1 id="感谢相关作者的分享"><a href="#感谢相关作者的分享" class="headerlink" title="感谢相关作者的分享"></a>感谢相关作者的分享</h1><p>tanks</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E7%AE%97%E6%B3%95/" rel="tag"># 算法</a>
+              <a href="/tags/%E6%9C%80%E5%A4%A7%E5%9B%9E%E6%96%87%E5%AD%90%E4%B8%B2/" rel="tag"># 最大回文子串</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/2020/08/22/merlin-%E6%A2%85%E6%9E%97%E8%B7%AF%E7%94%B1%E5%99%A8%E8%87%AA%E5%8A%A8%E5%88%87%E6%8D%A2%E7%BD%91%E5%85%B3/" rel="next" title="merlin-梅林路由器自动切换网关">
+      merlin-梅林路由器自动切换网关 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="lv-container" data-id="city" data-uid="MTAyMC81MDY5Ny8yNzE4MA=="></div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          المحتويات
+        </li>
+        <li class="sidebar-nav-overview">
+          عام
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#我的理解"><span class="nav-number">1.</span> <span class="nav-text">我的理解</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#原文的解法一枚举法"><span class="nav-number">2.</span> <span class="nav-text">原文的解法一枚举法</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#举例"><span class="nav-number">2.1.</span> <span class="nav-text">举例</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#原文的解法二"><span class="nav-number">3.</span> <span class="nav-text">原文的解法二</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#疑问"><span class="nav-number">3.1.</span> <span class="nav-text">疑问</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#代码解析"><span class="nav-number">3.2.</span> <span class="nav-text">代码解析</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#引用原文"><span class="nav-number">4.</span> <span class="nav-text">引用原文</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#感谢相关作者的分享"><span class="nav-number">5.</span> <span class="nav-text">感谢相关作者的分享</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">FreddyZeng</p>
+  <div class="site-description" itemprop="description">keep progress</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">المقالات</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">التصنيفات</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">23</span>
+        <span class="site-state-item-name">الوسوم</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">FreddyZeng</span>
+</div>
+  <div class="powered-by">تطبيق الموقع <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+NexT.utils.loadComments(document.querySelector('#lv-container'), () => {
+  window.livereOptions = {
+    refer: location.pathname.replace(CONFIG.root, '').replace('index.html', '')
+  };
+  (function(d, s) {
+    var j, e = d.getElementsByTagName(s)[0];
+    if (typeof LivereTower === 'function') { return; }
+    j = d.createElement(s);
+    j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+    j.async = true;
+    e.parentNode.insertBefore(j, e);
+  })(document, 'script');
+});
+</script>
+
+</body>
+</html>
