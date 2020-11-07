@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>Charles使用技巧</title>
+    <url>/2020/10/25/Charles%E4%BD%BF%E7%94%A8%E6%8A%80%E5%B7%A7/</url>
+    <content><![CDATA[]]></content>
+  </entry>
+  <entry>
     <title>Problem</title>
     <url>/2020/10/14/Problem/</url>
     <content><![CDATA[<p>关注自己的成长提升，发现工作+生活中的每一个大小问题，并且解决它，让自己成长。</p>
@@ -247,52 +252,6 @@
       </tags>
   </entry>
   <entry>
-    <title>如何使用Git掌控项目</title>
-    <url>/2020/09/29/%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8Git%E6%8E%8C%E6%8E%A7%E9%A1%B9%E7%9B%AE/</url>
-    <content><![CDATA[<h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>作为开发者，我们都需要使用Git。无论是开源项目，还是企业项目，我们都需要回溯历史变动。查询某个功能是什么时候添加的，我们想查看它的演变就可以了（因为Git就是按照时间轴标记commit的）。</p>
-<a id="more"></a>
-
-<h1 id="如何使用git回溯历史"><a href="#如何使用git回溯历史" class="headerlink" title="如何使用git回溯历史"></a>如何使用git回溯历史</h1><p>如果从项目中，找到某个变量，但是想知道这个变量的所有commit信息</p>
-<p>这时我们就可以使用下面g代码it log进行搜索</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git <span class="built_in">log</span> -S <span class="string">'关键字'</span></span><br></pre></td></tr></table></figure>
-
-<p>这些commit是从最晚到最早提交进行排序的结果列表，这样可以查看最近的’关键字’变动</p>
-<p>如果对git log 非常熟悉的，就不用往下看了。。我是想记录一些自己的感想，认为对工作，对个人提升有帮助的点。</p>
-<h1 id="基于git-log的技巧"><a href="#基于git-log的技巧" class="headerlink" title="基于git log的技巧"></a>基于git log的技巧</h1><h2 id="问题1-我们有时候，就是不知道这个变量是怎么来的，无法了解它的逻辑和实现"><a href="#问题1-我们有时候，就是不知道这个变量是怎么来的，无法了解它的逻辑和实现" class="headerlink" title="问题1:我们有时候，就是不知道这个变量是怎么来的，无法了解它的逻辑和实现"></a>问题1:我们有时候，就是不知道这个变量是怎么来的，无法了解它的逻辑和实现</h2><h3 id="猜想：如果我们能从项目中，寻找这个变量，是从那个commit开始提交的，这样我们是不是就可以回溯它的演变了？（包括阅读开源项目）"><a href="#猜想：如果我们能从项目中，寻找这个变量，是从那个commit开始提交的，这样我们是不是就可以回溯它的演变了？（包括阅读开源项目）" class="headerlink" title="猜想：如果我们能从项目中，寻找这个变量，是从那个commit开始提交的，这样我们是不是就可以回溯它的演变了？（包括阅读开源项目）"></a>猜想：如果我们能从项目中，寻找这个变量，是从那个commit开始提交的，这样我们是不是就可以回溯它的演变了？（包括阅读开源项目）</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git <span class="built_in">log</span> --reverse -S <span class="string">'关键字'</span></span><br></pre></td></tr></table></figure>
-
-<p>比如我想查看v-on在vue中的实现，第一个想到的是使用编辑器或者grep/rg全局搜索。</p>
-<p>因为Vue项目基于git，我们有更好的方式（不用全局搜索），那就是把问题转换为寻找第一个含有’<strong>v-on</strong>‘的commit记录，然后从中探索它的实现过程</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git <span class="built_in">log</span> --reverse -S <span class="string">'v-on'</span></span><br></pre></td></tr></table></figure>
-
-<p>效果图：</p>
-<img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img%E6%88%AA%E5%B1%8F2020-09-29%20%E4%B8%8B%E5%8D%881.21.19.png" alt="截屏2020-09-29 下午1.25.49" style="zoom:33%;">
-
-<p>可是这样子还是不够友好，因为并没有列出包含’<strong>v-on</strong>‘的记录到底在文件中哪里，仅仅列出了commit信息</p>
-<p>所以我们可以给 git log 添加 -p参数，让记录直接输出到stdout，然后我们可以继续添加grep进行关键字过滤结果</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git <span class="built_in">log</span> --reverse -p -S <span class="string">'v-on'</span> | grep -iE <span class="string">"(^commit\b|^diff\b|v-on)"</span> -A 3 -B 3 -m 30</span><br><span class="line"></span><br><span class="line">-m是为了避免记录过多，限制加载次数。再git checkout 到最后一个commit，就可以继续查看记录（大工程频繁git checkout很慢）</span><br><span class="line"></span><br><span class="line">git <span class="built_in">log</span> --reverse -p -S <span class="string">'v-on'</span> &lt;上一次最后输出的commit <span class="built_in">hash</span>&gt;..&lt;最新的commit <span class="built_in">hash</span>或者分支名字&gt; | grep -iE <span class="string">"(^commit\b|^diff\b|v-on)"</span> -A 3 -B 3 -m 30（-m 是限制匹配输出30次，防止过多匹配）</span><br><span class="line"></span><br><span class="line">如果有些文件是在一行过长，可以用rg -M 限制一行的byte大小，这样过长的一行就会被跳过</span><br><span class="line">git <span class="built_in">log</span> --reverse -p -S <span class="string">'v-on'</span> &lt;上一次最后输出的commit <span class="built_in">hash</span>&gt;..&lt;最新的commit <span class="built_in">hash</span>或者分支名字&gt; | rg -e <span class="string">"(^commit\b|^diff\b|v-on)"</span> -A 3 -B 3 -M 500</span><br><span class="line"></span><br><span class="line">如果有大量的匹配，一时之间停不下来，-m限制匹配出现次数来终止。也可以执行commit的范围来决定匹配，因为我们没法知道关键字都集中在那一个范围，所以这样会有点被动。</span><br><span class="line"></span><br><span class="line">取HEAD后的第20个commit <span class="built_in">hash</span>如下：</span><br><span class="line">git rev-list HEAD..master | tail -20 | head -1</span><br><span class="line">这样把上面的结果，放到前面的&lt;最新的commit <span class="built_in">hash</span>或者分支名字&gt;,就可以知道范围查找，避免停不下来。</span><br><span class="line"></span><br><span class="line">一般来说，可以用git checkout HEAD~1（HEAD向后，也就是向下）</span><br><span class="line">也可以用git checkout head^1 来控制跳到那个父commit（如果当前的commit，有多个合并来源，它可以从多个父来源方向选择一个进行回退）</span><br><span class="line"></span><br><span class="line">让HEAD向前，也就是向上移动</span><br><span class="line">git checkout -（类似<span class="built_in">cd</span> -，返回上一次记录）</span><br><span class="line">git checkout $(git rev-list HEAD..master | tail -1| head -1)（如果要指定向前多少步，修改 tail 的参数）</span><br></pre></td></tr></table></figure>
-
-<img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img%E6%88%AA%E5%B1%8F2020-09-29%20%E4%B8%8B%E5%8D%881.25.49.png" alt="截屏2020-09-29 下午1.21.19" style="zoom:33%;">
-
-<p>太幸运了，我们在第一个commit，就看到Vue作者写的v-on正则，并且是|和@连接，所以@和v-on是同一个匹配规则，就是这么来的。</p>
-<p>接下来我们就可以继续翻阅v-on的相关代码演进，这里就不演示了</p>
-<p>除了-S之外，使用-G参数让git log支持正则</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git <span class="built_in">log</span> --reverse -G <span class="string">'v-on'</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="问题2：如果我是不太明白这个文件中的某个函数是怎么演进到目前这个状态逻辑的，怎么办呢？"><a href="#问题2：如果我是不太明白这个文件中的某个函数是怎么演进到目前这个状态逻辑的，怎么办呢？" class="headerlink" title="问题2：如果我是不太明白这个文件中的某个函数是怎么演进到目前这个状态逻辑的，怎么办呢？"></a>问题2：如果我是不太明白这个文件中的某个函数是怎么演进到目前这个状态逻辑的，怎么办呢？</h2><h3 id="我们可以使用git-log-L追溯某个文件的变动"><a href="#我们可以使用git-log-L追溯某个文件的变动" class="headerlink" title="我们可以使用git log -L追溯某个文件的变动"></a>我们可以使用git log -L追溯某个文件的变动</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">// 文件中，某段范围的演变记录回溯</span><br><span class="line">git <span class="built_in">log</span> -L &lt;开始行号&gt;,&lt;结束行号&gt;:&lt;文件路径&gt;</span><br><span class="line">// 按函数名追溯(有时候不使用,可能跟语法词法有关需要合适的语言)</span><br><span class="line">git <span class="built_in">log</span> -L :&lt;函数名&gt;:&lt;文件路径&gt;</span><br><span class="line">// 整个文件记录回溯</span><br><span class="line">git <span class="built_in">log</span> --follow &lt;文件路径&gt;</span><br></pre></td></tr></table></figure>
-
-<p>这个我就不展示了，可以自己尝试，结合grep或者rg获取关键字的位置</p>
-<h1 id="git-reflog查看git所有操作记录"><a href="#git-reflog查看git所有操作记录" class="headerlink" title="git reflog查看git所有操作记录"></a>git reflog查看git所有操作记录</h1><p>使用 git reflog，可以查看一些本地git的操作日志</p>
-<h1 id="持续完善"><a href="#持续完善" class="headerlink" title="持续完善"></a>持续完善</h1>]]></content>
-      <categories>
-        <category>git</category>
-        <category>技巧</category>
-      </categories>
-      <tags>
-        <tag>git</tag>
-        <tag>技巧</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>尝试提升自己的理解力</title>
     <url>/2020/09/17/%E5%B0%9D%E8%AF%95%E6%8F%90%E5%8D%87%E8%87%AA%E5%B7%B1%E7%9A%84%E7%90%86%E8%A7%A3%E5%8A%9B/</url>
     <content><![CDATA[<h1 id="一般来说，有3个方向思考-我们都听过"><a href="#一般来说，有3个方向思考-我们都听过" class="headerlink" title="一般来说，有3个方向思考(我们都听过)"></a>一般来说，有3个方向思考(我们都听过)</h1><p>是什么</p>
@@ -346,6 +305,52 @@
       <tags>
         <tag>理解力</tag>
         <tag>认知</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>如何使用Git掌控项目</title>
+    <url>/2020/09/29/%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8Git%E6%8E%8C%E6%8E%A7%E9%A1%B9%E7%9B%AE/</url>
+    <content><![CDATA[<h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>作为开发者，我们都需要使用Git。无论是开源项目，还是企业项目，我们都需要回溯历史变动。查询某个功能是什么时候添加的，我们想查看它的演变就可以了（因为Git就是按照时间轴标记commit的）。</p>
+<a id="more"></a>
+
+<h1 id="如何使用git回溯历史"><a href="#如何使用git回溯历史" class="headerlink" title="如何使用git回溯历史"></a>如何使用git回溯历史</h1><p>如果从项目中，找到某个变量，但是想知道这个变量的所有commit信息</p>
+<p>这时我们就可以使用下面g代码it log进行搜索</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git <span class="built_in">log</span> -S <span class="string">'关键字'</span></span><br></pre></td></tr></table></figure>
+
+<p>这些commit是从最晚到最早提交进行排序的结果列表，这样可以查看最近的’关键字’变动</p>
+<p>如果对git log 非常熟悉的，就不用往下看了。。我是想记录一些自己的感想，认为对工作，对个人提升有帮助的点。</p>
+<h1 id="基于git-log的技巧"><a href="#基于git-log的技巧" class="headerlink" title="基于git log的技巧"></a>基于git log的技巧</h1><h2 id="问题1-我们有时候，就是不知道这个变量是怎么来的，无法了解它的逻辑和实现"><a href="#问题1-我们有时候，就是不知道这个变量是怎么来的，无法了解它的逻辑和实现" class="headerlink" title="问题1:我们有时候，就是不知道这个变量是怎么来的，无法了解它的逻辑和实现"></a>问题1:我们有时候，就是不知道这个变量是怎么来的，无法了解它的逻辑和实现</h2><h3 id="猜想：如果我们能从项目中，寻找这个变量，是从那个commit开始提交的，这样我们是不是就可以回溯它的演变了？（包括阅读开源项目）"><a href="#猜想：如果我们能从项目中，寻找这个变量，是从那个commit开始提交的，这样我们是不是就可以回溯它的演变了？（包括阅读开源项目）" class="headerlink" title="猜想：如果我们能从项目中，寻找这个变量，是从那个commit开始提交的，这样我们是不是就可以回溯它的演变了？（包括阅读开源项目）"></a>猜想：如果我们能从项目中，寻找这个变量，是从那个commit开始提交的，这样我们是不是就可以回溯它的演变了？（包括阅读开源项目）</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git <span class="built_in">log</span> --reverse -S <span class="string">'关键字'</span></span><br></pre></td></tr></table></figure>
+
+<p>比如我想查看v-on在vue中的实现，第一个想到的是使用编辑器或者grep/rg全局搜索。</p>
+<p>因为Vue项目基于git，我们有更好的方式（不用全局搜索），那就是把问题转换为寻找第一个含有’<strong>v-on</strong>‘的commit记录，然后从中探索它的实现过程</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git <span class="built_in">log</span> --reverse -S <span class="string">'v-on'</span></span><br></pre></td></tr></table></figure>
+
+<p>效果图：</p>
+<img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img%E6%88%AA%E5%B1%8F2020-09-29%20%E4%B8%8B%E5%8D%881.21.19.png" alt="截屏2020-09-29 下午1.25.49" style="zoom:33%;">
+
+<p>可是这样子还是不够友好，因为并没有列出包含’<strong>v-on</strong>‘的记录到底在文件中哪里，仅仅列出了commit信息</p>
+<p>所以我们可以给 git log 添加 -p参数，让记录直接输出到stdout，然后我们可以继续添加grep进行关键字过滤结果</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git <span class="built_in">log</span> --reverse -p -S <span class="string">'v-on'</span> | grep -iE <span class="string">"(^commit\b|^diff\b|v-on)"</span> -A 3 -B 3 -m 30</span><br><span class="line"></span><br><span class="line">-m是为了避免记录过多，限制加载次数。再git checkout 到最后一个commit，就可以继续查看记录（大工程频繁git checkout很慢）</span><br><span class="line"></span><br><span class="line">git <span class="built_in">log</span> --reverse -p -S <span class="string">'v-on'</span> &lt;上一次最后输出的commit <span class="built_in">hash</span>&gt;..&lt;最新的commit <span class="built_in">hash</span>或者分支名字&gt; | grep -iE <span class="string">"(^commit\b|^diff\b|v-on)"</span> -A 3 -B 3 -m 30（-m 是限制匹配输出30次，防止过多匹配）</span><br><span class="line"></span><br><span class="line">如果有些文件是在一行过长，可以用rg -M 限制一行的byte大小，这样过长的一行就会被跳过</span><br><span class="line">git <span class="built_in">log</span> --reverse -p -S <span class="string">'v-on'</span> &lt;上一次最后输出的commit <span class="built_in">hash</span>&gt;..&lt;最新的commit <span class="built_in">hash</span>或者分支名字&gt; | rg -e <span class="string">"(^commit\b|^diff\b|v-on)"</span> -A 3 -B 3 -M 500</span><br><span class="line"></span><br><span class="line">如果有大量的匹配，一时之间停不下来，-m限制匹配出现次数来终止。也可以执行commit的范围来决定匹配，因为我们没法知道关键字都集中在那一个范围，所以这样会有点被动。</span><br><span class="line"></span><br><span class="line">取HEAD后的第20个commit <span class="built_in">hash</span>如下：</span><br><span class="line">git rev-list HEAD..master | tail -20 | head -1</span><br><span class="line">这样把上面的结果，放到前面的&lt;最新的commit <span class="built_in">hash</span>或者分支名字&gt;,就可以知道范围查找，避免停不下来。</span><br><span class="line"></span><br><span class="line">一般来说，可以用git checkout HEAD~1（HEAD向后，也就是向下）</span><br><span class="line">也可以用git checkout head^1 来控制跳到那个父commit（如果当前的commit，有多个合并来源，它可以从多个父来源方向选择一个进行回退）</span><br><span class="line"></span><br><span class="line">让HEAD向前，也就是向上移动</span><br><span class="line">git checkout -（类似<span class="built_in">cd</span> -，返回上一次记录）</span><br><span class="line">git checkout $(git rev-list HEAD..master | tail -1| head -1)（如果要指定向前多少步，修改 tail 的参数）</span><br></pre></td></tr></table></figure>
+
+<img src="https://raw.githubusercontent.com/FreddyZeng/BlogImg/master/img%E6%88%AA%E5%B1%8F2020-09-29%20%E4%B8%8B%E5%8D%881.25.49.png" alt="截屏2020-09-29 下午1.21.19" style="zoom:33%;">
+
+<p>太幸运了，我们在第一个commit，就看到Vue作者写的v-on正则，并且是|和@连接，所以@和v-on是同一个匹配规则，就是这么来的。</p>
+<p>接下来我们就可以继续翻阅v-on的相关代码演进，这里就不演示了</p>
+<p>除了-S之外，使用-G参数让git log支持正则</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git <span class="built_in">log</span> --reverse -G <span class="string">'v-on'</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="问题2：如果我是不太明白这个文件中的某个函数是怎么演进到目前这个状态逻辑的，怎么办呢？"><a href="#问题2：如果我是不太明白这个文件中的某个函数是怎么演进到目前这个状态逻辑的，怎么办呢？" class="headerlink" title="问题2：如果我是不太明白这个文件中的某个函数是怎么演进到目前这个状态逻辑的，怎么办呢？"></a>问题2：如果我是不太明白这个文件中的某个函数是怎么演进到目前这个状态逻辑的，怎么办呢？</h2><h3 id="我们可以使用git-log-L追溯某个文件的变动"><a href="#我们可以使用git-log-L追溯某个文件的变动" class="headerlink" title="我们可以使用git log -L追溯某个文件的变动"></a>我们可以使用git log -L追溯某个文件的变动</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">// 文件中，某段范围的演变记录回溯</span><br><span class="line">git <span class="built_in">log</span> -L &lt;开始行号&gt;,&lt;结束行号&gt;:&lt;文件路径&gt;</span><br><span class="line">// 按函数名追溯(有时候不使用,可能跟语法词法有关需要合适的语言)</span><br><span class="line">git <span class="built_in">log</span> -L :&lt;函数名&gt;:&lt;文件路径&gt;</span><br><span class="line">// 整个文件记录回溯</span><br><span class="line">git <span class="built_in">log</span> --follow &lt;文件路径&gt;</span><br></pre></td></tr></table></figure>
+
+<p>这个我就不展示了，可以自己尝试，结合grep或者rg获取关键字的位置</p>
+<h1 id="git-reflog查看git所有操作记录"><a href="#git-reflog查看git所有操作记录" class="headerlink" title="git reflog查看git所有操作记录"></a>git reflog查看git所有操作记录</h1><p>使用 git reflog，可以查看一些本地git的操作日志</p>
+<h1 id="持续完善"><a href="#持续完善" class="headerlink" title="持续完善"></a>持续完善</h1>]]></content>
+      <categories>
+        <category>git</category>
+        <category>技巧</category>
+      </categories>
+      <tags>
+        <tag>git</tag>
+        <tag>技巧</tag>
       </tags>
   </entry>
   <entry>
