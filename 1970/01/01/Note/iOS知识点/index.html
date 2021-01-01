@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"freddyzeng.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="图片上传，内存占用问题 https:&#x2F;&#x2F;stackoverflow.com&#x2F;a&#x2F;42843020 https:&#x2F;&#x2F;developer.apple.com&#x2F;documentation&#x2F;foundation&#x2F;url_loading_system&#x2F;uploading_streams_of_data iOS 系统Debug View https:&#x2F;&#x2F;www.ryanipete.com&#x2F;blog&#x2F;ios&#x2F;s">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Note&#x2F;iOS知识点">
+<meta property="og:url" content="https://freddyzeng.github.io/1970/01/01/Note/iOS%E7%9F%A5%E8%AF%86%E7%82%B9/index.html">
+<meta property="og:site_name" content="FreddyZeng&#39;s blog">
+<meta property="og:description" content="图片上传，内存占用问题 https:&#x2F;&#x2F;stackoverflow.com&#x2F;a&#x2F;42843020 https:&#x2F;&#x2F;developer.apple.com&#x2F;documentation&#x2F;foundation&#x2F;url_loading_system&#x2F;uploading_streams_of_data iOS 系统Debug View https:&#x2F;&#x2F;www.ryanipete.com&#x2F;blog&#x2F;ios&#x2F;s">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="1970-01-01T00:00:00.000Z">
+<meta property="article:modified_time" content="2020-12-30T00:57:11.632Z">
+<meta property="article:author" content="FreddyZeng">
+<meta property="article:tag" content="web">
+<meta property="article:tag" content="react">
+<meta property="article:tag" content="vue">
+<meta property="article:tag" content="html">
+<meta property="article:tag" content="css">
+<meta property="article:tag" content="iOS">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://freddyzeng.github.io/1970/01/01/Note/iOS%E7%9F%A5%E8%AF%86%E7%82%B9/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Note/iOS知识点 | FreddyZeng's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">FreddyZeng's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习笔记</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://freddyzeng.github.io/1970/01/01/Note/iOS%E7%9F%A5%E8%AF%86%E7%82%B9/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="FreddyZeng">
+      <meta itemprop="description" content="keep progress">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="FreddyZeng's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Note/iOS知识点
+        </h1>
+
+        <div class="post-meta">
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 1970-01-01 08:00:00" itemprop="dateCreated datePublished" datetime="1970-01-01T08:00:00+08:00">1970-01-01</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-12-30 08:57:11" itemprop="dateModified" datetime="2020-12-30T08:57:11+08:00">2020-12-30</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>图片上传，内存占用问题</p>
+<p><a href="https://stackoverflow.com/a/42843020" target="_blank" rel="noopener">https://stackoverflow.com/a/42843020</a></p>
+<p><a href="https://developer.apple.com/documentation/foundation/url_loading_system/uploading_streams_of_data" target="_blank" rel="noopener">https://developer.apple.com/documentation/foundation/url_loading_system/uploading_streams_of_data</a></p>
+<p>iOS 系统Debug View</p>
+<p><a href="https://www.ryanipete.com/blog/ios/swift/objective-c/uidebugginginformationoverlay/" target="_blank" rel="noopener">https://www.ryanipete.com/blog/ios/swift/objective-c/uidebugginginformationoverlay/</a></p>
+<p>hook系统库的C函数</p>
+<p><a href="https://medium.com/@warmap_/%E7%94%A8dlopen-dlsym%E6%9D%A5hook%E5%92%8C%E6%89%A7%E8%A1%8C%E4%BB%A3%E7%A0%81-d9f299efc1e8" target="_blank" rel="noopener">https://medium.com/@warmap_/%E7%94%A8dlopen-dlsym%E6%9D%A5hook%E5%92%8C%E6%89%A7%E8%A1%8C%E4%BB%A3%E7%A0%81-d9f299efc1e8</a></p>
+<p><a href="https://medium.com/@warmap_/method-swizzling-objective-c-frameworks-e2397c5d3344" target="_blank" rel="noopener">https://medium.com/@warmap_/method-swizzling-objective-c-frameworks-e2397c5d3344</a></p>
+<p>性能优化</p>
+<p>红色：是图层不必要的混合</p>
+<p>黄色：离屏幕渲染<br>Bezier path instead of view cornering<br>UIImage分类来提供异步渲染的图片</p>
+<p><a href="https://medium.com/e-legion/gotta-go-fast-building-for-speed-in-ios-efc78a626a9c" target="_blank" rel="noopener">https://medium.com/e-legion/gotta-go-fast-building-for-speed-in-ios-efc78a626a9c</a></p>
+<p><a href="https://medium.com/e-legion/gotta-go-fast-building-for-speed-in-ios-part-2-644b3e68739a" target="_blank" rel="noopener">https://medium.com/e-legion/gotta-go-fast-building-for-speed-in-ios-part-2-644b3e68739a</a></p>
+<p>进程和线程的关系</p>
+<p>进程是资源的分配单位，线程是调度单位</p>
+<p>WKWebView白屏问题</p>
+<p><a href="https://mp.weixin.qq.com/s/rhYKLIbXOsUJC_n6dt9UfA" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/rhYKLIbXOsUJC_n6dt9UfA</a></p>
+<p>OC和Swift混合一个库开发</p>
+<p>cocoapods 动态库引用静态库，modulemap</p>
+<p>使用Runloop优化图片赋值</p>
+<p>iOS内购流程</p>
+<p><a href="https://www.jianshu.com/p/2f3f9a0673a3" target="_blank" rel="noopener">https://www.jianshu.com/p/2f3f9a0673a3</a></p>
+<p>swift demangle</p>
+<p><a href="https://stackoverflow.com/a/46762089" target="_blank" rel="noopener">https://stackoverflow.com/a/46762089</a></p>
+<p><a href="https://stackoverflow.com/questions/24283804/swift-reverse-engineeringswift-function-name-rule" target="_blank" rel="noopener">https://stackoverflow.com/questions/24283804/swift-reverse-engineeringswift-function-name-rule</a></p>
+<p><a href="https://stackoverflow.com/a/46195810" target="_blank" rel="noopener">https://stackoverflow.com/a/46195810</a></p>
+<p>良好的计算机基础，数据结构和算法。对操作系统相关的线程、内存、文件有深入了解的优先,熟练使用Objective C，Swift，熟悉iOS的Runtime, 内存管理机制和多线程开发，或具有良好的C/C++语言基础，了解内存和指针概念</p>
+
+    </div>
+
+    
+    
+    
+        <div class="reward-container">
+  <div>请我喝杯咖啡~</div>
+  <button onclick="var qr = document.getElementById('qr'); qr.style.display = (qr.style.display === 'none') ? 'block' : 'none';">
+    Donate
+  </button>
+  <div id="qr" style="display: none;">
+      
+      <div style="display: inline-block;">
+        <img src="/images/wechatpay.png" alt="FreddyZeng WeChat Pay">
+        <p>WeChat Pay</p>
+      </div>
+      
+      <div style="display: inline-block;">
+        <img src="/images/alipay.png" alt="FreddyZeng Alipay">
+        <p>Alipay</p>
+      </div>
+
+  </div>
+</div>
+
+        
+
+  <div class="followme">
+    <p>欢迎加我微信交流~</p>
+
+    <div class="social-list">
+
+        <div class="social-item">
+          <a target="_blank" class="social-link" href="/images/wechat_channel.jpg">
+            <span class="icon">
+              <i class="wechat"></i>
+            </span>
+
+            <span class="label">WeChat</span>
+          </a>
+        </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/1970/01/01/Note/plan/" rel="prev" title="Note/plan">
+      <i class="fa fa-chevron-left"></i> Note/plan
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/1970/01/01/Note/%E5%AD%A6%E4%B9%A0%E8%83%BD%E5%8A%9B/" rel="next" title="Note/学习能力">
+      Note/学习能力 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="lv-container" data-id="city" data-uid="MTAyMC81MDY5Ny8yNzE4MA=="></div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">FreddyZeng</p>
+  <div class="site-description" itemprop="description">keep progress</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">20</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">26</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">FreddyZeng</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+NexT.utils.loadComments(document.querySelector('#lv-container'), () => {
+  window.livereOptions = {
+    refer: location.pathname.replace(CONFIG.root, '').replace('index.html', '')
+  };
+  (function(d, s) {
+    var j, e = d.getElementsByTagName(s)[0];
+    if (typeof LivereTower === 'function') { return; }
+    j = d.createElement(s);
+    j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+    j.async = true;
+    e.parentNode.insertBefore(j, e);
+  })(document, 'script');
+});
+</script>
+
+</body>
+</html>

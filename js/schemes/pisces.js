@@ -80,7 +80,16 @@ NexT.utils.getAffixParam = function() {
   };
 };
 
-window.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
 
   Affix.init(document.querySelector('.sidebar-inner'), NexT.utils.getAffixParam());
+  if (!document.querySelector('.content .post-body ul li input')) {
+    document.querySelector('.content .post-body ul').style.listStyleType='disc';
+    document.querySelector('.content .post-body ul').style.listStyle='disc';
+    document.querySelector('.content .post-body ul').style.paddingLeft='2em';
+  } else {
+    document.querySelector('.content .post-body ul').style.listStyleType='none';
+    document.querySelector('.content .post-body ul').style.listStyle='none';
+    document.querySelector('.content .post-body ul').style.paddingLeft='1em';
+  }
 });
